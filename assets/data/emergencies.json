@@ -1,0 +1,28 @@
+{
+  "countries": [
+    {
+      "country": "Togo",
+      "emergencyNumbers": [
+        {"name": "Urgence médicale", "number": "112", "type": "medical"},
+        {"name": "Police", "number": "117", "type": "police"},
+        {"name": "Pompiers", "number": "118", "type": "fire"}
+      ]
+    },
+    {
+      "country": "Burkina Faso",
+      "emergencyNumbers": [
+        {"name": "Urgence médicale", "number": "112", "type": "medical"},
+        {"name": "Police", "number": "117", "type": "police"},
+        {"name": "Pompiers", "number": "118", "type": "fire"}
+      ]
+    },
+    {
+      "country": "Côte d'Ivoire",
+      "emergencyNumbers": [
+        {"name": "Urgence médicale", "number": "112", "type": "medical"},
+        {"name": "Police", "number": "111", "type": "police"},
+        {"name": "Pompiers", "number": "115", "type": "fire"}
+      ]
+    }
+  ]
+}
