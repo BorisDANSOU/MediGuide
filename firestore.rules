@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Seul ce compte peut écrire dans medical_centers (seeding).
+    // Remplace par l'UID Firebase Auth du compte de seeding.
+    function isSeeder() {
+      return isSignedIn() && request.auth.uid == 'REMPLACER_PAR_UID_SEEDER';
+    }
+
+    // Centres de santé : lecture pour tout utilisateur connecté,
+    // écriture réservée au compte de seeding.
+    match /medical_centers/{centerId} {
+      allow read: if isSignedIn();
+      allow write: if isSeeder();
+    }
+
+    // Profil utilisateur (pays, ville) : accessible uniquement à son propriétaire.
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+  }
+}
