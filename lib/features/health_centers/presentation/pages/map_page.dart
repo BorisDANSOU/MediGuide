@@ -6,8 +6,14 @@ import 'package:latlong2/latlong.dart';
 import '../../../../core/constants/supported_locations.dart';
 import '../../../user_profile/domain/entities/user_profile_entity.dart';
 import '../../../user_profile/presentation/controllers/user_profile_controller.dart';
+import '../../domain/entities/health_center_entity.dart';
+import '../controllers/health_centers_providers.dart';
+import '../widgets/health_center_marker_style.dart';
+import '../widgets/health_center_markers_layer.dart';
+import '../widgets/map_legend.dart';
 
-/// Carte OpenStreetMap, centrée sur la ville du pays choisi dans le Profil.
+/// Carte OpenStreetMap : centrée sur la ville du pays choisi dans le Profil,
+/// avec les centres de santé en marqueurs colorés par catégorie.
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
 
@@ -37,6 +43,60 @@ class _MapPageState extends ConsumerState<MapPage> {
     _mapController.move(_centerFor(country), _cityZoom);
   }
 
+  /// Fiche rapide d'un centre, ouverte quand on touche son marqueur
+  void _showCenterSheet(HealthCenterEntity center) {
+    final style = HealthCenterMarkerStyle.forType(center.type);
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(style.icon, color: style.color),
+                  const SizedBox(width: 8),
+                  Text(
+                    style.label,
+                    style: TextStyle(
+                      color: style.color,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                center.name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text('${center.city ?? ''}, ${center.country ?? ''}'),
+              // Téléphone affiché seulement s'il existe
+              if (center.phone != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.phone, size: 16),
+                    const SizedBox(width: 6),
+                    Text(center.phone!),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _mapController.dispose(); // libère les ressources de la carte
@@ -58,32 +118,64 @@ class _MapPageState extends ConsumerState<MapPage> {
       }
     });
 
+    // Centres du pays actif : la carte se met à jour quand le pays change
+    final centersAsync = ref.watch(
+      healthCentersByCountryProvider(profile.country),
+    );
+    final centers = centersAsync.value ?? const <HealthCenterEntity>[];
+
     return Scaffold(
       appBar: AppBar(title: Text('Carte sanitaire • ${profile.city}')),
-      body: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          initialCenter: _centerFor(profile.country),
-          initialZoom: _cityZoom,
-          minZoom: 3,
-          maxZoom: 18,
-          // Appelée quand la carte est prête
-          onMapReady: () {
-            _mapReady = true;
-            _recenter(profile.country);
-          },
-        ),
+      body: Stack(
         children: [
-          // Fond de carte OpenStreetMap
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.mediguid',
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _centerFor(profile.country),
+              initialZoom: _cityZoom,
+              minZoom: 3,
+              maxZoom: 18,
+              // Appelée quand la carte est prête : on se recentre au cas où
+              // le profil se serait chargé pendant l'affichage de la carte
+              onMapReady: () {
+                _mapReady = true;
+                _recenter(profile.country);
+              },
+            ),
+            children: [
+              // Fond de carte OpenStreetMap
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                // Identifiant de l'app, demandé par OpenStreetMap
+                userAgentPackageName: 'com.example.mediguid',
+              ),
+
+              // Marqueurs colorés des centres de santé
+              HealthCenterMarkersLayer(
+                centers: centers,
+                onTap: _showCenterSheet,
+              ),
+
+              // Mention obligatoire de la licence OpenStreetMap
+              const RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution('OpenStreetMap contributors'),
+                ],
+              ),
+            ],
           ),
 
-          // Mention obligatoire de la licence OpenStreetMap
-          const RichAttributionWidget(
-            attributions: [TextSourceAttribution('OpenStreetMap contributors')],
-          ),
+          // Barre de chargement pendant la récupération des centres
+          if (centersAsync.isLoading)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(),
+            ),
+
+          // Légende des couleurs
+          const Positioned(left: 12, bottom: 12, child: MapLegend()),
         ],
       ),
     );
