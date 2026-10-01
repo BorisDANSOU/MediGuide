@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config/routes/app_routes.dart';
+import 'core/theme/app_theme.dart';
+import 'features/user_profile/presentation/controllers/user_profile_controller.dart';
 
-void main() {
+// main devient "async" : on doit attendre le chargement de SharedPreferences
+Future<void> main() async {
   // Nécessaire avant toute initialisation asynchrone
   // (Firebase, GetIt... seront ajoutés ici plus tard)
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ProviderScope : le conteneur Riverpod. Il doit envelopper toute l'app,
-  // sinon aucun provider ne fonctionne.
-  runApp(const ProviderScope(child: MediGuideApp()));
+  // Chargement du stockage local, une seule fois, au démarrage
+  final prefs = await SharedPreferences.getInstance();
+
+  runApp(
+    // ProviderScope : le conteneur Riverpod, qui doit envelopper toute l'app.
+    // "overrides" fournit la vraie valeur de sharedPreferencesProvider.
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const MediGuideApp(),
+    ),
+  );
 }
 
 class MediGuideApp extends StatelessWidget {
@@ -22,9 +34,7 @@ class MediGuideApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'MediGuide',
       debugShowCheckedModeBanner: false,
-      // THÈME TEMPORAIRE : remplacé par core/theme/app_theme.dart
-      // quand l'équipe aura validé la palette.
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.teal),
+      theme: AppTheme.light,
       routerConfig: appRouter,
     );
   }
