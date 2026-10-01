@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/navigation/presentation/pages/main_shell_page.dart';
 import '../../features/navigation/presentation/widgets/placeholder_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
+import '../../features/user_profile/presentation/pages/profile_page.dart';
 
 /// Chemins des routes centralisés ici : on évite d'écrire '/home'
 /// en dur dans les écrans (source de fautes de frappe).
@@ -44,13 +45,12 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Onglet 1 : Carte (DANSOU : map_page.dart, plus tard)
+        // Onglet 3 : Profil
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: AppRoutes.map,
-              builder: (context, state) =>
-                  const PlaceholderPage(title: 'Carte'),
+              path: AppRoutes.profile,
+              builder: (context, state) => const ProfilePage(),
             ),
           ],
         ),
