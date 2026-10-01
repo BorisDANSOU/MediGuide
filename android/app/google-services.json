@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "62200588877",
+    "project_id": "mediguide-1d550",
+    "storage_bucket": "mediguide-1d550.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:62200588877:android:df93cb75b6a68142648a04",
+        "android_client_info": {
+          "package_name": "com.example.mediguid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAObLGHSNgx_ccIftU8hUMbb-MvgxAKD9g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
