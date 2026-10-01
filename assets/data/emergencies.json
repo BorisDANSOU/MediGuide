@@ -1,28 +1,22 @@
 {
-  "countries": [
-    {
-      "country": "Togo",
-      "emergencyNumbers": [
-        {"name": "Urgence médicale", "number": "112", "type": "medical"},
-        {"name": "Police", "number": "117", "type": "police"},
-        {"name": "Pompiers", "number": "118", "type": "fire"}
-      ]
-    },
-    {
-      "country": "Burkina Faso",
-      "emergencyNumbers": [
-        {"name": "Urgence médicale", "number": "112", "type": "medical"},
-        {"name": "Police", "number": "117", "type": "police"},
-        {"name": "Pompiers", "number": "118", "type": "fire"}
-      ]
-    },
-    {
-      "country": "Côte d'Ivoire",
-      "emergencyNumbers": [
-        {"name": "Urgence médicale", "number": "112", "type": "medical"},
-        {"name": "Police", "number": "111", "type": "police"},
-        {"name": "Pompiers", "number": "115", "type": "fire"}
-      ]
-    }
+  "Togo": [
+    {"name": "Sapeurs-Pompiers", "number": "118", "type": "Fire", "verified": true, "note": "Source : voyage.gc.ca ; communiqué plan ORSEC (juin 2026)"},
+    {"name": "Police Secours", "number": "117", "type": "Police", "verified": true, "note": "Aussi 1244 (communiqué plan ORSEC, juin 2026)"},
+    {"name": "Gendarmerie nationale", "number": "172", "type": "Police", "verified": true, "note": "Communiqué plan ORSEC (juin 2026)"},
+    {"name": "Protection civile (ANPC)", "number": "170", "type": "Civil", "verified": true, "note": "Communiqué plan ORSEC (juin 2026)"},
+    {"name": "CHU Sylvanus Olympio", "number": "+228 22 21 25 01", "type": "Hospital", "verified": false, "note": "Numéro du dossier, non confirmé"}
+  ],
+  "Burkina Faso": [
+    {"name": "Police Secours", "number": "17", "type": "Police", "verified": true, "note": "Source : voyage.gc.ca"},
+    {"name": "Sapeurs-Pompiers", "number": "18", "type": "Fire", "verified": true, "note": "Source : voyage.gc.ca ; Wakat Séra"},
+    {"name": "SAMU Burkina Faso", "number": "15", "type": "Medical", "verified": false, "note": "Numéro du dossier, non confirmé"},
+    {"name": "Gendarmerie", "number": "16", "type": "Police", "verified": false, "note": "Numéro du dossier, non confirmé"},
+    {"name": "CHU Yalgado Ouédraogo", "number": "+226 25 31 16 55", "type": "Hospital", "verified": false, "note": "Numéro du dossier, non confirmé"}
+  ],
+  "Côte d'Ivoire": [
+    {"name": "SAMU", "number": "185", "type": "Medical", "verified": true, "note": "Source : voyage.gc.ca ; smartraveller.gov.au"},
+    {"name": "Sapeurs-Pompiers", "number": "180", "type": "Fire", "verified": true, "note": "Source : voyage.gc.ca ; smartraveller.gov.au"},
+    {"name": "Police Secours", "number": "170", "type": "Police", "verified": true, "note": "Aussi 110 et 111 (voyage.gc.ca)"},
+    {"name": "CHU de Cocody", "number": "+225 27 22 44 91 00", "type": "Hospital", "verified": false, "note": "Numéro du dossier, non confirmé"}
   ]
 }
