@@ -10,6 +10,10 @@ class HealthCenterModel extends HealthCenterEntity {
     super.city,
     super.country,
     super.phone,
+    super.address,
+    super.openingHours,
+    super.is24h,
+    super.isGuard,
   });
 
   factory HealthCenterModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +26,10 @@ class HealthCenterModel extends HealthCenterEntity {
       city: json['city'],
       country: json['country'],
       phone: json['phone'],
+      address: json['address'],
+      openingHours: json['openingHours'],
+      is24h: json['is24h'] ?? false,
+      isGuard: json['isGuard'] ?? false,
     );
   }
 }
