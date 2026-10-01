@@ -4,6 +4,7 @@ import '../../features/navigation/presentation/pages/main_shell_page.dart';
 import '../../features/navigation/presentation/widgets/placeholder_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/user_profile/presentation/pages/profile_page.dart';
+import '../../features/emergency/presentation/pages/emergency_modal_page.dart';
 
 /// Chemins des routes centralisés ici : on évite d'écrire '/home'
 /// en dur dans les écrans (source de fautes de frappe).
@@ -80,10 +81,10 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // Urgences : hors des onglets, s'ouvre par-dessus (bouton rouge).
-    // DJOBO remplacera PlaceholderPage par son écran d'urgence.
     GoRoute(
       path: AppRoutes.emergency,
-      builder: (context, state) => const PlaceholderPage(title: 'Urgences'),
+      // Page de DJOBO : il la complétera, la route n'aura pas à changer
+      builder: (context, state) => const EmergencyModalPage(),
     ),
   ],
 );
