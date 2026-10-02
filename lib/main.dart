@@ -1,9 +1,35 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'config/routes/app_routes.dart';
+import 'core/services/firestore_offline.dart';
 import 'core/theme/app_theme.dart';
+import 'features/user_profile/presentation/controllers/user_profile_controller.dart';
+import 'firebase_options.dart';
 
-void main() {
-  runApp(const MediGuideApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Connexion à Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    configureFirestoreOffline();
+  } catch (error) {
+    debugPrint('Firebase non initialisé : $error');
+  }
+
+  final prefs = await SharedPreferences.getInstance();
+
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const MediGuideApp(),
+    ),
+  );
 }
 
 class MediGuideApp extends StatelessWidget {
@@ -11,62 +37,11 @@ class MediGuideApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'MediGuide',
-      theme: AppTheme.lightTheme,
-      home: const HomePage(),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('MediGuide')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Bienvenue sur MediGuide',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Architecture Clean implémentée et prête pour les modules santé, urgence et maternité.',
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: const [
-                _FeatureChip(label: 'Centres de santé'),
-                _FeatureChip(label: 'Urgences'),
-                _FeatureChip(label: 'Maternité'),
-                _FeatureChip(label: 'Profil'),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FeatureChip extends StatelessWidget {
-  const _FeatureChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text(label),
-      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      routerConfig: appRouter,
     );
   }
 }
