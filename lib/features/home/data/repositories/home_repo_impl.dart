@@ -1,19 +1,18 @@
-import '../../../health_centers/data/repositories/health_center_catalog_impl.dart';
-import '../../../health_centers/domain/repositories/health_center_catalog.dart';
+import '../../../health_centers/domain/usecases/get_centers_around.dart';
 import '../../domain/entities/home_overview.dart';
 import '../../domain/repositories/home_repository.dart';
 
 class HomeRepositoryImpl implements HomeRepository {
-  const HomeRepositoryImpl({this.catalog = const HealthCenterCatalogImpl()});
+  const HomeRepositoryImpl(this.getCentersAround);
 
-  final HealthCenterCatalog catalog;
+  final GetCentersAround getCentersAround;
 
   @override
   Future<HomeOverview> getOverview({
     required String country,
     required String city,
   }) async {
-    final centers = await catalog.centersAround(country: country, city: city);
+    final centers = await getCentersAround(country: country, city: city);
 
     return HomeOverview(
       country: country,

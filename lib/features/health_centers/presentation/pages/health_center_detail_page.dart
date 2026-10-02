@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/utils/external_actions.dart';
-import '../../../../core/utils/geo_distance.dart';
+import '../../../../core/utils/distance_formatter.dart';
 import '../../../../core/widgets/responsive_cards.dart';
 import '../../domain/entities/health_center_entity.dart';
 

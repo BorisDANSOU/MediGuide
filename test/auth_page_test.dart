@@ -1,65 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:mediguid/features/auth/presentation/pages/auth_page.dart';
+import 'package:mediguid/config/routes/app_routes.dart';
 
 import 'helpers.dart';
 
-Future<void> _tapVisible(WidgetTester tester, String text) async {
-  final finder = find.text(text).last;
-  await tester.ensureVisible(finder);
-  await tester.pumpAndSettle();
-  await tester.tap(finder);
-  await tester.pumpAndSettle();
-}
+Future<void> _tap(WidgetTester tester, String text) =>
+    tapVisible(tester, find.text(text).last);
 
 void main() {
   testWidgets('Connexion : champs vides refusés', (tester) async {
-    await tester.pumpWidget(wrap(const AuthPage()));
-    await _tapVisible(tester, 'Se connecter');
+    await pumpApp(tester, location: AppRoutes.auth);
+    await _tap(tester, 'Se connecter');
 
     expect(find.text('Saisissez votre adresse e-mail.'), findsOneWidget);
     expect(find.text('Saisissez votre mot de passe.'), findsOneWidget);
   });
 
   testWidgets('Connexion : mauvais mot de passe', (tester) async {
-    await tester.pumpWidget(wrap(const AuthPage()));
+    await pumpApp(tester, location: AppRoutes.auth);
     await tester.enterText(
       find.byType(TextFormField).at(0),
       'demo@mediguide.app',
     );
     await tester.enterText(find.byType(TextFormField).at(1), 'mauvais-mdp');
-    await _tapVisible(tester, 'Se connecter');
+    await _tap(tester, 'Se connecter');
 
     expect(find.text('Mot de passe incorrect.'), findsOneWidget);
   });
 
-  testWidgets('Connexion avec le compte de démo : accueil à Ouagadougou', (
+  testWidgets('Compte de démo : accueil à Ouagadougou avec le prénom', (
     tester,
   ) async {
-    await tester.pumpWidget(wrap(const AuthPage()));
-    await _tapVisible(tester, 'Utiliser le compte de démonstration');
-    await _tapVisible(tester, 'Se connecter');
+    // Profil enregistré sur un autre pays : la connexion doit le corriger.
+    await pumpApp(
+      tester,
+      location: AppRoutes.auth,
+      country: 'Togo',
+      city: 'Lomé',
+    );
+    await _tap(tester, 'Utiliser le compte de démonstration');
+    await _tap(tester, 'Se connecter');
 
     expect(find.text('Bonjour, Utilisateur 👋'), findsOneWidget);
     expect(find.text('Ouagadougou, Burkina Faso'), findsOneWidget);
+    expect(find.text('Se connecter'), findsNothing);
   });
 
-  testWidgets('Inscription : le pays choisi devient la ville de l’accueil', (
+  testWidgets('Inscription : le pays choisi devient celui de l’accueil', (
     tester,
   ) async {
-    await tester.pumpWidget(wrap(const AuthPage(initialMode: AuthMode.signup)));
+    await pumpApp(tester, location: AppRoutes.auth);
+    await _tap(tester, 'Créer un compte');
 
-    final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), 'Koffi Amavi');
-    await tester.enterText(fields.at(1), 'koffi@exemple.ci');
-    await _tapVisible(tester, "Côte d'Ivoire");
+    await tester.enterText(find.byType(TextFormField).at(0), 'Koffi Amavi');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'koffi@exemple.ci',
+    );
+    await _tap(tester, "Côte d'Ivoire");
     expect(find.text('Abidjan'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField).at(2), 'motdepasse1');
     await tester.enterText(find.byType(TextFormField).at(3), 'motdepasse2');
-    await _tapVisible(tester, 'Créer mon compte');
+    await _tap(tester, 'Créer mon compte');
 
-    // Mots de passe différents et conditions non acceptées.
     expect(
       find.text('Les deux mots de passe ne sont pas identiques.'),
       findsOneWidget,
@@ -70,35 +74,36 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextFormField).at(3), 'motdepasse1');
-    final checkbox = find.byType(Checkbox);
-    await tester.ensureVisible(checkbox);
-    await tester.tap(checkbox);
-    await _tapVisible(tester, 'Créer mon compte');
+    await tapVisible(tester, find.byType(Checkbox));
+    await _tap(tester, 'Créer mon compte');
 
     expect(find.text('Bonjour, Koffi 👋'), findsOneWidget);
     expect(find.text("Abidjan, Côte d'Ivoire"), findsOneWidget);
+  });
+
+  testWidgets('« Continuer sans compte » ouvre l’accueil', (tester) async {
+    await pumpApp(tester, location: AppRoutes.auth);
+    await _tap(tester, 'Continuer sans compte');
+
+    expect(find.text('Urgence vitale ?'), findsOneWidget);
   });
 
   for (final size in testSizes) {
     testWidgets('Inscription sans débordement en ${size.width.toInt()} px', (
       tester,
     ) async {
-      await expectNoOverflow(
-        tester,
-        const AuthPage(initialMode: AuthMode.signup),
-        size: size,
-      );
+      setScreen(tester, size);
+      await pumpApp(tester, location: AppRoutes.auth);
+      await _tap(tester, 'Créer un compte');
+      await expectNoOverflowWhileScrolling(tester);
     });
   }
 
   testWidgets('Connexion sans débordement avec texte ×1,5 en 360 px', (
     tester,
   ) async {
-    await expectNoOverflow(
-      tester,
-      const AuthPage(),
-      size: const Size(360, 780),
-      textScale: 1.5,
-    );
+    setScreen(tester, const Size(360, 780), textScale: 1.5);
+    await pumpApp(tester, location: AppRoutes.auth);
+    await expectNoOverflowWhileScrolling(tester);
   });
 }

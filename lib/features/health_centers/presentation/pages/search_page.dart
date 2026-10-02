@@ -1,60 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../config/routes/app_routes.dart';
 import '../../../../core/utils/external_actions.dart';
 import '../../../../core/widgets/responsive_cards.dart';
 import '../../../../core/widgets/state_message.dart';
-import '../../data/repositories/health_center_catalog_impl.dart';
+import '../../../user_profile/domain/entities/user_profile_entity.dart';
+import '../../../user_profile/presentation/controllers/user_profile_controller.dart';
 import '../../domain/entities/center_filter.dart';
 import '../../domain/entities/nearby_center.dart';
+import '../controllers/centers_around_provider.dart';
 import '../controllers/search_controller.dart';
-import '../widgets/center_cards.dart';
-import 'health_center_detail_page.dart';
+import '../widgets/hospital_card.dart';
 
 /// Écran 05 : recherche et liste des résultats (KABORE).
-class SearchPage extends StatefulWidget {
-  const SearchPage({
-    super.key,
-    required this.country,
-    required this.city,
-    this.initialFilter = CenterFilter.all,
-    this.controller,
-  });
+/// Cherche dans la ville du profil (DANSOU).
+class SearchPage extends ConsumerStatefulWidget {
+  const SearchPage({super.key, this.initialFilter = CenterFilter.all});
 
-  final String country;
-  final String city;
   final CenterFilter initialFilter;
 
-  /// Injectable pour les tests.
-  final CenterSearchController? controller;
-
   @override
-  State<SearchPage> createState() => _SearchPageState();
+  ConsumerState<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
-  late final CenterSearchController _controller =
-      widget.controller ??
-      CenterSearchController(
-        catalog: const HealthCenterCatalogImpl(),
-        initialFilter: widget.initialFilter,
-      );
+class _SearchPageState extends ConsumerState<SearchPage> {
+  late final CenterSearchController _controller;
   final _field = TextEditingController();
+
+  UserProfileEntity get _profile =>
+      ref.read(userProfileControllerProvider).value ??
+      UserProfileEntity.initial;
 
   @override
   void initState() {
     super.initState();
+    _controller = CenterSearchController(
+      getCentersAround: ref.read(getCentersAroundProvider),
+      initialFilter: widget.initialFilter,
+    );
     _load();
   }
 
   @override
   void dispose() {
-    if (widget.controller == null) _controller.dispose();
+    _controller.dispose();
     _field.dispose();
     super.dispose();
   }
 
   Future<void> _load() =>
-      _controller.load(country: widget.country, city: widget.city);
+      _controller.load(country: _profile.country, city: _profile.city);
 
   void _clearAll() {
     _field.clear();
@@ -142,7 +139,7 @@ class _SearchPageState extends State<SearchPage> {
                       ? StateMessage(
                           icon: Icons.search_off,
                           message:
-                              'Aucun centre trouvé à ${widget.city}. '
+                              'Aucun centre trouvé à ${_profile.city}. '
                               'Essayez un autre mot ou retirez le filtre.',
                           actionLabel: 'Tout effacer',
                           onAction: _clearAll,
@@ -153,7 +150,7 @@ class _SearchPageState extends State<SearchPage> {
                             Text(
                               '${results.length} résultat'
                               '${results.length > 1 ? 's' : ''} à '
-                              '${widget.city} · du plus proche au plus loin',
+                              '${_profile.city} · du plus proche au plus loin',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             const SizedBox(height: 12),
@@ -174,14 +171,9 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _card(NearbyCenter item) {
     final c = item.center;
-    return NearbyCenterCard(
+    return HospitalCard(
       item: item,
-      onOpen: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) =>
-              HealthCenterDetailPage(center: c, distanceKm: item.distanceKm),
-        ),
-      ),
+      onOpen: () => context.push(AppRoutes.center, extra: item),
       onCall: () => callPhoneNumber(context, c.phone!),
       onDirections: () => openDirections(
         context,

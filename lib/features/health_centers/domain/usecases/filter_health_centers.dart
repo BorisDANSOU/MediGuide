@@ -1,4 +1,4 @@
-import '../../../../core/utils/text_normalizer.dart';
+import '../../data/models/medical_center.dart' show normalizeForSearch;
 import '../entities/center_filter.dart';
 import '../entities/nearby_center.dart';
 

@@ -1,66 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../config/routes/app_routes.dart';
 import '../../../../core/widgets/responsive_cards.dart';
-import '../../../emergency/presentation/pages/emergency_modal_page.dart';
-import '../../../home/presentation/pages/home_page.dart';
-import '../../../user_profile/domain/entities/user_profile_entity.dart';
-import '../../data/repositories/demo_auth_repository.dart';
+import '../../../user_profile/presentation/controllers/user_profile_controller.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/usecases/sign_in.dart';
 import '../../domain/usecases/sign_up.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/auth_providers.dart';
 import '../widgets/login_form.dart';
 import '../widgets/signup_form.dart';
-
-/// Une seule instance pour la session : les comptes créés restent valables
-/// après une déconnexion, jusqu'au redémarrage de l'application.
-final _demoRepository = DemoAuthRepository();
 
 enum AuthMode { login, signup }
 
 /// Écran 02 : connexion et inscription (KABORE).
-class AuthPage extends StatefulWidget {
-  const AuthPage({
-    super.key,
-    this.initialMode = AuthMode.login,
-    this.controller,
-  });
+class AuthPage extends ConsumerStatefulWidget {
+  const AuthPage({super.key, this.initialMode = AuthMode.login});
 
   final AuthMode initialMode;
 
-  /// Injectable pour les tests.
-  final AuthController? controller;
-
   @override
-  State<AuthPage> createState() => _AuthPageState();
+  ConsumerState<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage> {
-  late final AuthController _controller =
-      widget.controller ??
-      AuthController(SignIn(_demoRepository), SignUp(_demoRepository));
+class _AuthPageState extends ConsumerState<AuthPage> {
+  late final AuthController _controller;
   late AuthMode _mode = widget.initialMode;
 
   @override
+  void initState() {
+    super.initState();
+    final repository = ref.read(authRepositoryProvider);
+    _controller = AuthController(SignIn(repository), SignUp(repository));
+  }
+
+  @override
   void dispose() {
-    if (widget.controller == null) _controller.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  void _goHome({AppUser? user}) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => user == null
-            ? const HomePage()
-            : HomePage(
-                userName: user.firstName,
-                profile: UserProfileEntity(
-                  country: user.country,
-                  city: user.city,
-                ),
-              ),
-      ),
-    );
+  /// Ouvre la session, aligne le profil sur le pays du compte, puis l'accueil.
+  Future<void> _onSignedIn(AppUser user) async {
+    ref.read(authSessionProvider.notifier).signIn(user);
+    await ref
+        .read(userProfileControllerProvider.notifier)
+        .selectCountry(user.country);
+    if (mounted) context.go(AppRoutes.home);
   }
 
   @override
@@ -114,11 +102,7 @@ class _AuthPageState extends State<AuthPage> {
                       ),
                       const SizedBox(height: 20),
                       _EmergencyAccessCard(
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const EmergencyModalPage(),
-                          ),
-                        ),
+                        onTap: () => context.push(AppRoutes.emergency),
                       ),
                       const SizedBox(height: 20),
                       SegmentedButton<AuthMode>(
@@ -144,15 +128,15 @@ class _AuthPageState extends State<AuthPage> {
                       _mode == AuthMode.login
                           ? LoginForm(
                               controller: _controller,
-                              onSuccess: (u) => _goHome(user: u),
+                              onSuccess: _onSignedIn,
                             )
                           : SignupForm(
                               controller: _controller,
-                              onSuccess: (u) => _goHome(user: u),
+                              onSuccess: _onSignedIn,
                             ),
                       const SizedBox(height: 12),
                       TextButton(
-                        onPressed: _goHome,
+                        onPressed: () => context.go(AppRoutes.home),
                         child: const Text('Continuer sans compte'),
                       ),
                     ],

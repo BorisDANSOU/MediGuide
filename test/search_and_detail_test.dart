@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:mediguid/config/routes/app_routes.dart';
+
 import 'package:mediguid/features/health_centers/domain/entities/center_filter.dart';
 import 'package:mediguid/features/health_centers/domain/entities/health_center_entity.dart';
 import 'package:mediguid/features/health_centers/domain/entities/nearby_center.dart';
 import 'package:mediguid/features/health_centers/domain/usecases/filter_health_centers.dart';
 import 'package:mediguid/features/health_centers/presentation/pages/health_center_detail_page.dart';
-import 'package:mediguid/features/health_centers/presentation/pages/search_page.dart';
 
 import 'helpers.dart';
 
@@ -54,48 +55,49 @@ void main() {
   });
 
   group('SearchPage', () {
-    const page = SearchPage(country: 'Burkina Faso', city: 'Ouagadougou');
-
     testWidgets('filtre en direct puis propose de tout effacer', (
       tester,
     ) async {
-      await tester.pumpWidget(wrap(page));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('5 résultats'), findsOneWidget);
+      await pumpApp(tester, location: AppRoutes.search);
+      expect(find.textContaining('7 résultats'), findsOneWidget);
 
-      await tester.enterText(find.byType(TextField), 'yalgado');
+      await tester.enterText(find.byType(TextField), 'clinique');
       await tester.pumpAndSettle();
-      expect(find.textContaining('1 résultat '), findsOneWidget);
+      expect(find.textContaining('2 résultats'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), 'zzz');
       await tester.pumpAndSettle();
       expect(find.textContaining('Aucun centre trouvé'), findsOneWidget);
 
-      await tester.tap(find.text('Tout effacer'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('5 résultats'), findsOneWidget);
+      await tapVisible(tester, find.text('Tout effacer'));
+      expect(find.textContaining('7 résultats'), findsOneWidget);
     });
 
-    testWidgets('la puce « De garde » ne garde que les pharmacies de garde', (
+    testWidgets('la puce « Pharmacies » ne garde que les pharmacies', (
       tester,
     ) async {
-      await tester.pumpWidget(wrap(page));
-      await tester.pumpAndSettle();
-      final chip = find.widgetWithText(ChoiceChip, 'De garde');
-      await tester.ensureVisible(chip);
-      await tester.pumpAndSettle();
-      await tester.tap(chip);
-      await tester.pumpAndSettle();
+      await pumpApp(tester, location: AppRoutes.search);
+      await tapVisible(tester, find.widgetWithText(ChoiceChip, 'Pharmacies'));
 
+      expect(find.textContaining('3 résultats'), findsOneWidget);
+      expect(find.textContaining('Hôpital démo'), findsNothing);
+    });
+
+    testWidgets('le filtre passé dans l’adresse est appliqué', (tester) async {
+      await pumpApp(
+        tester,
+        location: AppRoutes.searchWith(CenterFilter.hospital),
+      );
       expect(find.textContaining('2 résultats'), findsOneWidget);
-      expect(find.text('CHU Yalgado Ouédraogo'), findsNothing);
     });
 
     for (final size in testSizes) {
       testWidgets('sans débordement en ${size.width.toInt()} px', (
         tester,
       ) async {
-        await expectNoOverflow(tester, page, size: size);
+        setScreen(tester, size);
+        await pumpApp(tester, location: AppRoutes.search);
+        await expectNoOverflowWhileScrolling(tester);
       });
     }
   });
@@ -125,12 +127,11 @@ void main() {
       testWidgets('sans débordement en ${size.width.toInt()} px', (
         tester,
       ) async {
-        await expectNoOverflow(
-          tester,
-          const HealthCenterDetailPage(center: _yalgado, distanceKm: 1.2),
-          size: size,
-          textScale: size.width == 360 ? 1.5 : 1,
+        setScreen(tester, size, textScale: size.width == 360 ? 1.5 : 1);
+        await tester.pumpWidget(
+          wrap(const HealthCenterDetailPage(center: _yalgado, distanceKm: 1.2)),
         );
+        await expectNoOverflowWhileScrolling(tester);
       });
     }
   });

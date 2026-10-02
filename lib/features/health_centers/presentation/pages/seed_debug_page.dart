@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../services/firestore_seeder.dart';
+import '../../data/datasources/firestore_seeder.dart';
 
 /// Écran de développement : se connecte avec le compte de seeding puis
 /// lance le seeding OSM -> Firestore. À retirer avant la démo.

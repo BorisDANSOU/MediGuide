@@ -2,20 +2,20 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/center_filter.dart';
 import '../../domain/entities/nearby_center.dart';
-import '../../domain/repositories/health_center_catalog.dart';
 import '../../domain/usecases/filter_health_centers.dart';
+import '../../domain/usecases/get_centers_around.dart';
 
 enum SearchStatus { loading, ready, error }
 
 /// État de l'écran de recherche : texte saisi, puce active et résultats.
 class CenterSearchController extends ChangeNotifier {
   CenterSearchController({
-    required this.catalog,
+    required this.getCentersAround,
     CenterFilter initialFilter = CenterFilter.all,
     this.filterCenters = const FilterHealthCenters(),
   }) : _filter = initialFilter;
 
-  final HealthCenterCatalog catalog;
+  final GetCentersAround getCentersAround;
   final FilterHealthCenters filterCenters;
 
   SearchStatus _status = SearchStatus.loading;
@@ -34,7 +34,7 @@ class CenterSearchController extends ChangeNotifier {
     _status = SearchStatus.loading;
     notifyListeners();
     try {
-      _all = await catalog.centersAround(country: country, city: city);
+      _all = await getCentersAround(country: country, city: city);
       _status = SearchStatus.ready;
     } catch (_) {
       _status = SearchStatus.error;

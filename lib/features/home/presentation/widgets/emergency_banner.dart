@@ -45,6 +45,9 @@ class EmergencyBanner extends StatelessWidget {
       style: FilledButton.styleFrom(
         backgroundColor: scheme.onError,
         foregroundColor: scheme.error,
+        // Le thème impose une largeur pleine (Size.fromHeight) : impossible
+        // dans une ligne, on rend la largeur libre ici.
+        minimumSize: const Size(0, 48),
       ),
       icon: const Icon(Icons.call),
       label: const Text('Numéros d’urgence'),

@@ -6,12 +6,16 @@ class HomeHeader extends StatelessWidget {
     super.key,
     required this.city,
     required this.country,
+    required this.isSignedIn,
     required this.onProfileTap,
+    required this.onSignInTap,
   });
 
   final String city;
   final String country;
+  final bool isSignedIn;
   final VoidCallback onProfileTap;
+  final VoidCallback onSignInTap;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +60,18 @@ class HomeHeader extends StatelessWidget {
             ],
           ),
         ),
+        if (!isSignedIn)
+          // Sur petit écran, une icône : le texte ferait déborder la ligne.
+          MediaQuery.sizeOf(context).width < 380
+              ? IconButton(
+                  onPressed: onSignInTap,
+                  tooltip: 'Se connecter',
+                  icon: const Icon(Icons.login),
+                )
+              : TextButton(
+                  onPressed: onSignInTap,
+                  child: const Text('Se connecter'),
+                ),
         IconButton.filledTonal(
           onPressed: onProfileTap,
           tooltip: 'Mon profil',

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../config/routes/app_routes.dart';
 import '../../../../core/utils/external_actions.dart';
 import '../../../../core/widgets/responsive_cards.dart';
 import '../../../../core/widgets/state_message.dart';
-import '../../../emergency/presentation/pages/emergency_modal_page.dart';
+import '../../../auth/presentation/controllers/auth_providers.dart';
 import '../../../health_centers/domain/entities/center_filter.dart';
 import '../../../health_centers/domain/entities/nearby_center.dart';
-import '../../../health_centers/presentation/pages/health_center_detail_page.dart';
-import '../../../health_centers/presentation/pages/map_page.dart';
-import '../../../health_centers/presentation/pages/search_page.dart';
-import '../../../health_centers/presentation/widgets/center_cards.dart';
-import '../../../maternity/presentation/pages/maternity_dashboard_page.dart';
+import '../../../health_centers/presentation/controllers/centers_around_provider.dart';
+import '../../../health_centers/presentation/widgets/hospital_card.dart';
 import '../../../user_profile/domain/entities/user_profile_entity.dart';
-import '../../../user_profile/presentation/pages/profile_page.dart';
+import '../../../user_profile/presentation/controllers/user_profile_controller.dart';
 import '../../data/repositories/home_repo_impl.dart';
 import '../../domain/usecases/get_home_overview.dart';
 import '../controllers/home_controller.dart';
@@ -23,68 +23,42 @@ import '../widgets/quick_services_grid.dart';
 import '../widgets/section_title.dart';
 
 /// Écran 03 : accueil et dashboard principal (KABORE).
-class HomePage extends StatefulWidget {
-  const HomePage({
-    super.key,
-    this.profile = const UserProfileEntity(),
-    this.userName,
-    this.controller,
-  });
-
-  final UserProfileEntity profile;
-
-  /// Prénom affiché dans la salutation ; `null` pour un visiteur sans compte.
-  final String? userName;
-
-  /// Injectable pour les tests ; sinon branché sur les données de démo.
-  final HomeController? controller;
+/// Onglet Accueil : le pays et la ville viennent du profil (DANSOU).
+class HomePage extends ConsumerStatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  late final HomeController _controller =
-      widget.controller ??
-      HomeController(const GetHomeOverview(HomeRepositoryImpl()));
+class _HomePageState extends ConsumerState<HomePage> {
+  late final HomeController _controller;
+
+  /// Profil pour lequel les centres ont été chargés.
+  UserProfileEntity? _loadedFor;
 
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  @override
-  void didUpdateWidget(HomePage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.profile.city != widget.profile.city) _load();
+    _controller = HomeController(
+      GetHomeOverview(HomeRepositoryImpl(ref.read(getCentersAroundProvider))),
+    );
   }
 
   @override
   void dispose() {
-    if (widget.controller == null) _controller.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _load() => _controller.load(
-    country: widget.profile.country,
-    city: widget.profile.city,
-  );
+  Future<void> _load(UserProfileEntity profile) =>
+      _controller.load(country: profile.country, city: profile.city);
 
-  void _open(Widget page) =>
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  void _openSearch([CenterFilter filter = CenterFilter.all]) =>
+      context.push(AppRoutes.searchWith(filter));
 
-  void _openSearch([CenterFilter filter = CenterFilter.all]) => _open(
-    SearchPage(
-      country: widget.profile.country,
-      city: widget.profile.city,
-      initialFilter: filter,
-    ),
-  );
-
-  void _openDetail(NearbyCenter item) => _open(
-    HealthCenterDetailPage(center: item.center, distanceKm: item.distanceKm),
-  );
+  void _openDetail(NearbyCenter item) =>
+      context.push(AppRoutes.center, extra: item);
 
   void _call(NearbyCenter item) => callPhoneNumber(context, item.center.phone!);
 
@@ -97,21 +71,42 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final profileState = ref.watch(userProfileControllerProvider);
+    final user = ref.watch(authSessionProvider);
+
+    final profile = profileState.value;
+    if (profile == null) {
+      return Scaffold(
+        body: profileState.hasError
+            ? const StateMessage(
+                icon: Icons.error_outline,
+                message: 'Impossible de lire votre pays et votre ville.',
+              )
+            : const Center(child: CircularProgressIndicator()),
+      );
+    }
+    // Premier affichage ou changement de pays depuis le profil.
+    if (profile != _loadedFor) {
+      _loadedFor = profile;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _load(profile));
+    }
+
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final padding = constraints.maxWidth >= 600 ? 24.0 : 16.0;
             return RefreshIndicator(
-              onRefresh: _load,
+              onRefresh: () => _load(profile),
               child: ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) => ListView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: padding,
-                    vertical: 12,
-                  ),
-                  children: [MaxWidth(child: _buildContent(context))],
+                  padding: EdgeInsets.fromLTRB(padding, 12, padding, 48),
+                  children: [
+                    MaxWidth(
+                      child: _buildContent(context, profile, user?.firstName),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -121,12 +116,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(
+    BuildContext context,
+    UserProfileEntity profile,
+    String? firstName,
+  ) {
     final text = Theme.of(context).textTheme;
-    final profile = widget.profile;
-    final greeting = widget.userName == null
+    final greeting = firstName == null
         ? 'Bonjour 👋'
-        : 'Bonjour, ${widget.userName} 👋';
+        : 'Bonjour, $firstName 👋';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -134,7 +132,9 @@ class _HomePageState extends State<HomePage> {
         HomeHeader(
           city: profile.city,
           country: profile.country,
-          onProfileTap: () => _open(const ProfilePage()),
+          isSignedIn: firstName != null,
+          onProfileTap: () => context.go(AppRoutes.profile),
+          onSignInTap: () => context.push(AppRoutes.auth),
         ),
         const SizedBox(height: 20),
         Text(
@@ -148,7 +148,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         const SizedBox(height: 16),
-        EmergencyBanner(onTap: () => _open(const EmergencyModalPage())),
+        EmergencyBanner(onTap: () => context.push(AppRoutes.emergency)),
         const SizedBox(height: 16),
         HomeSearchBar(onTap: _openSearch),
         const SizedBox(height: 24),
@@ -160,10 +160,9 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 8),
         QuickServicesGrid(services: _services()),
         const SizedBox(height: 24),
-        ..._buildDataSections(),
+        ..._buildDataSections(profile),
         const SizedBox(height: 24),
-        _AdviceCard(onTap: () => _open(const EmergencyModalPage())),
-        const SizedBox(height: 24),
+        _AdviceCard(onTap: () => context.push(AppRoutes.emergency)),
       ],
     );
   }
@@ -198,17 +197,17 @@ class _HomePageState extends State<HomePage> {
       icon: Icons.pregnant_woman,
       label: 'Maternité',
       caption: 'Mère et enfant',
-      onTap: () => _open(const MaternityDashboardPage()),
+      onTap: () => context.go(AppRoutes.maternity),
     ),
     QuickService(
       icon: Icons.map_outlined,
       label: 'Carte',
       caption: 'Autour de moi',
-      onTap: () => _open(const MapPage()),
+      onTap: () => context.go(AppRoutes.map),
     ),
   ];
 
-  List<Widget> _buildDataSections() {
+  List<Widget> _buildDataSections(UserProfileEntity profile) {
     switch (_controller.status) {
       case HomeStatus.loading:
         return const [
@@ -223,7 +222,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icons.cloud_off,
             message: 'Impossible de charger les centres de santé.',
             actionLabel: 'Réessayer',
-            onAction: _load,
+            onAction: () => _load(profile),
           ),
         ];
       case HomeStatus.ready:
@@ -248,13 +247,13 @@ class _HomePageState extends State<HomePage> {
           SectionTitle(
             title: 'Centres de soins proches',
             actionLabel: 'Carte',
-            onAction: () => _open(const MapPage()),
+            onAction: () => context.go(AppRoutes.map),
           ),
           const SizedBox(height: 8),
           _cardsOrEmpty(
             overview.nearbyCenters,
             empty: 'Aucun centre de santé connu à ${overview.city}.',
-            builder: (item) => NearbyCenterCard(
+            builder: (item) => HospitalCard(
               item: item,
               onOpen: () => _openDetail(item),
               onCall: () => _call(item),

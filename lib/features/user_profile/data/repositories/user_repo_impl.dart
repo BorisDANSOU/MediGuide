@@ -1,23 +1,21 @@
 import '../../domain/entities/user_profile_entity.dart';
-import '../datasources/user_local_ds.dart';
+import '../../domain/repositories/user_repository.dart';
+import '../datasources/user_local_datasource.dart';
 
-class UserRepositoryImpl {
-  const UserRepositoryImpl(this.localDataSource);
+/// Implémente le contrat du domaine (UserRepository) avec le stockage local.
+class UserRepoImpl implements UserRepository {
+  UserRepoImpl(this._localDataSource);
 
-  final UserLocalDataSource localDataSource;
+  final UserLocalDataSource _localDataSource;
 
+  @override
   Future<UserProfileEntity> getProfile() async {
-    final data = await localDataSource.loadProfile();
-    return UserProfileEntity(
-      country: data['country'] ?? 'Togo',
-      city: data['city'] ?? 'Lomé',
-    );
+    // S'il n'y a rien d'enregistré, on renvoie le profil par défaut (Togo)
+    return _localDataSource.readProfile() ?? UserProfileEntity.initial;
   }
 
-  Future<void> updateCountry({
-    required String country,
-    required String city,
-  }) async {
-    await localDataSource.saveProfile(country: country, city: city);
+  @override
+  Future<void> saveProfile(UserProfileEntity profile) {
+    return _localDataSource.writeProfile(profile);
   }
 }
