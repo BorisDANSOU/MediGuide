@@ -64,7 +64,5 @@ void main() {
     setScreen(tester, const Size(360, 780), textScale: 1.5);
     await pumpApp(tester, location: AppRoutes.home);
     await expectNoOverflowWhileScrolling(tester);
-    // À réactiver quand la barre du bas (app_bottom_bar.dart, DANSOU) gérera
-    // le texte agrandi : ses libellés débordent de 8 à 34 px à ×1,5.
-  }, skip: true);
+  });
 }
