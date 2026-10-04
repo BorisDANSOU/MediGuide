@@ -5,6 +5,7 @@ import '../widgets/app_bottom_bar.dart';
 
 /// La "coquille" de l'application : elle affiche l'onglet courant
 /// (navigationShell) avec la barre du bas et le bouton Urgences par-dessus.
+/// 5 onglets : Accueil (0), Carte (1), Urgences (2), Maternité (3), Profil (4)
 class MainShellPage extends StatelessWidget {
   const MainShellPage({super.key, required this.navigationShell});
 
