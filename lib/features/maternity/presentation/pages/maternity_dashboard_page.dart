@@ -8,6 +8,7 @@ import '../../data/repositories/maternity_repo_impl.dart';
 import '../../domain/entities/cpn_entity.dart';
 import '../../domain/repositories/maternity_repository.dart';
 import '../controllers/maternity_provider.dart';
+import '../pages/health_tasks_page.dart';
 import '../widgets/maternity_dashboard_widgets.dart';
 import '../widgets/vaccine_card.dart';
 
@@ -198,6 +199,8 @@ class _MaternityDashboardPageState extends State<MaternityDashboardPage> {
             'Les coordonnées de la ligne d’écoute seront configurées pour votre zone.',
           ),
         ),
+        const SizedBox(height: 20),
+        _buildHealthTasksButton(),
       ],
     );
   }
@@ -252,6 +255,22 @@ class _MaternityDashboardPageState extends State<MaternityDashboardPage> {
 
   String _formatWeek(int week) {
     return 'Semaine $week';
+  }
+
+  Widget _buildHealthTasksButton() {
+    return FilledButton.icon(
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => const HealthTasksPage(),
+        ),
+      ),
+      icon: const Icon(Icons.task_alt),
+      label: const Text('Voir le suivi de santé'),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        backgroundColor: AppColors.primary,
+      ),
+    );
   }
 
   void _showMessage(String message) {
