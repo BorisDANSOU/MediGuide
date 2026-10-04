@@ -26,7 +26,10 @@ class NotificationService {
         defaultTargetPlatform != TargetPlatform.linux &&
         defaultTargetPlatform != TargetPlatform.windows) {
       final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
+      final identifier = timeZoneInfo.identifier == 'GMT'
+          ? 'Etc/GMT'
+          : timeZoneInfo.identifier;
+      tz.setLocalLocation(tz.getLocation(identifier));
     }
 
     // Configuration Android
