@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/utils/validators.dart';
-import '../../data/repositories/demo_auth_repository.dart';
 import '../../domain/entities/app_user.dart';
 import '../controllers/auth_controller.dart';
 import 'auth_fields.dart';
@@ -24,7 +23,6 @@ class _LoginFormState extends State<LoginForm> {
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _stayConnected = true;
 
   @override
   void dispose() {
@@ -43,10 +41,30 @@ class _LoginFormState extends State<LoginForm> {
     if (user != null && mounted) widget.onSuccess(user);
   }
 
-  void _fillDemo() {
-    _email.text = DemoAuthRepository.demoEmail;
-    _password.text = DemoAuthRepository.demoPassword;
-    widget.controller.clearError();
+  /// Envoie le lien de réinitialisation à l'e-mail saisi.
+  Future<void> _resetPassword() async {
+    FocusScope.of(context).unfocus();
+    // Un message à la fois : on remplace le précédent au lieu d'attendre.
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    final emailError = Validators.email(_email.text);
+    if (emailError != null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Saisissez d’abord votre e-mail. $emailError')),
+      );
+      return;
+    }
+    final sent = await widget.controller.sendPasswordReset(email: _email.text);
+    if (sent) {
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Si un compte existe pour ${_email.text.trim()}, un e-mail de '
+            'réinitialisation vient de lui être envoyé.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -81,22 +99,9 @@ class _LoginFormState extends State<LoginForm> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Réinitialisation du mot de passe : disponible avec Firebase Auth.',
-                    ),
-                  ),
-                ),
+                onPressed: _resetPassword,
                 child: const Text('Mot de passe oublié ?'),
               ),
-            ),
-            CheckboxListTile(
-              value: _stayConnected,
-              onChanged: (v) => setState(() => _stayConnected = v ?? true),
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              title: const Text('Rester connecté, même hors ligne'),
             ),
             ListenableBuilder(
               listenable: widget.controller,
@@ -114,12 +119,6 @@ class _LoginFormState extends State<LoginForm> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: _fillDemo,
-              icon: const Icon(Icons.bolt_outlined),
-              label: const Text('Utiliser le compte de démonstration'),
             ),
           ],
         ),
