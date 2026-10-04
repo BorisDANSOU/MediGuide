@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/constants/supported_locations.dart';
@@ -12,8 +13,23 @@ import '../widgets/health_center_marker_style.dart';
 import '../widgets/health_center_markers_layer.dart';
 import '../widgets/map_legend.dart';
 
+/// Coordonnées optionnelles passées via GoRouter extra pour centrer
+/// la carte sur une destination urgence.
+class MapDestination {
+  const MapDestination({
+    required this.lat,
+    required this.lng,
+    required this.label,
+  });
+  final double lat;
+  final double lng;
+  final String label;
+}
+
 /// Carte OpenStreetMap : centrée sur la ville du pays choisi dans le Profil,
 /// avec les centres de santé en marqueurs colorés par catégorie.
+/// Accepte optionnellement [MapDestination] via GoRouter extra pour
+/// zoomer sur une destination urgence (hôpital / pharmacie).
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
 
@@ -24,12 +40,17 @@ class MapPage extends ConsumerStatefulWidget {
 class _MapPageState extends ConsumerState<MapPage> {
   // Zoom d'une ville entière
   static const double _cityZoom = 12;
+  // Zoom sur un point précis (urgence)
+  static const double _destinationZoom = 16;
 
   // Permet de déplacer la carte par le code (recentrage)
   final MapController _mapController = MapController();
 
   // On ne peut déplacer la carte qu'une fois qu'elle est affichée
   bool _mapReady = false;
+
+  // Destination urgence (null = aucune)
+  MapDestination? _destination;
 
   /// Coordonnées du centre pour un pays (liste de core/constants)
   LatLng _centerFor(String country) {
@@ -41,6 +62,12 @@ class _MapPageState extends ConsumerState<MapPage> {
   void _recenter(String country) {
     if (!_mapReady) return;
     _mapController.move(_centerFor(country), _cityZoom);
+  }
+
+  /// Zoom sur la destination urgence
+  void _zoomToDestination(MapDestination dest) {
+    if (!_mapReady) return;
+    _mapController.move(LatLng(dest.lat, dest.lng), _destinationZoom);
   }
 
   /// Fiche rapide d'un centre, ouverte quand on touche son marqueur
@@ -105,6 +132,15 @@ class _MapPageState extends ConsumerState<MapPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Lire la destination passée en extra par GoRouter
+    final extra = GoRouterState.of(context).extra;
+    if (extra is MapDestination && extra != _destination) {
+      _destination = extra;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _zoomToDestination(_destination!);
+      });
+    }
+
     // Profil actuel. Tant qu'il se charge : profil par défaut (Togo)
     final profile =
         ref.watch(userProfileControllerProvider).value ??
@@ -155,6 +191,27 @@ class _MapPageState extends ConsumerState<MapPage> {
                 centers: centers,
                 onTap: _showCenterSheet,
               ),
+
+              // Marqueur rouge de la destination urgence
+              if (_destination != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: LatLng(_destination!.lat, _destination!.lng),
+                      width: 56,
+                      height: 56,
+                      child: Tooltip(
+                        message: _destination!.label,
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.red,
+                          size: 40,
+                          shadows: [Shadow(blurRadius: 4)],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
               // Mention obligatoire de la licence OpenStreetMap
               const RichAttributionWidget(

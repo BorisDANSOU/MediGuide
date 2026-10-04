@@ -17,10 +17,15 @@ class MaternityRepositoryImpl implements MaternityRepository {
 
   @override
   Future<List<CpnEntity>> getCpnSchedule() async {
-    return const [
-      CpnEntity(id: 'cpn1', name: 'CPN 1', month: 1, completed: false),
-      CpnEntity(id: 'cpn2', name: 'CPN 2', month: 2, completed: false),
-      CpnEntity(id: 'cpn3', name: 'CPN 3', month: 3, completed: false),
-    ];
+    final rawData = await localDataSource.loadCpnSchedule();
+    return rawData.map((json) {
+      return CpnEntity(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        week: json['recommendedWeek'] as int,
+        completed: json['completed'] as bool,
+        description: json['description'] as String?,
+      );
+    }).toList();
   }
 }

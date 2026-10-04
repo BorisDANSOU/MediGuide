@@ -2,6 +2,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/emergency/presentation/pages/emergency_modal_page.dart';
 import '../../features/health_centers/presentation/pages/map_page.dart';
+import '../../features/maternity/presentation/pages/maternity_dashboard_page.dart';
+import '../../features/maternity/presentation/pages/vaccine_schedule_page.dart';
 import '../../features/navigation/presentation/pages/main_shell_page.dart';
 import '../../features/navigation/presentation/widgets/placeholder_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
@@ -16,6 +18,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String map = '/map';
   static const String maternity = '/maternity';
+  static const String vaccines = '/maternity/vaccines';
   static const String profile = '/profile';
   static const String emergency = '/emergency';
 }
@@ -29,8 +32,8 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const SplashPage(),
     ),
 
-    // Les 4 onglets partagent la même coquille (barre du bas).
-    // indexedStack garde chaque onglet en mémoire : on retrouve
+    // Les 5 destinations partagent la même coquille (barre du bas).
+    // indexedStack garde chaque destination en mémoire : on retrouve
     // la carte telle qu'on l'a laissée en revenant dessus.
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
@@ -57,18 +60,33 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Onglet 2 : Maternité (NOUMEDOR remplacera PlaceholderPage)
+        // Onglet 2 : Urgences
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: AppRoutes.maternity,
-              builder: (context, state) =>
-                  const PlaceholderPage(title: 'Maternité'),
+              path: AppRoutes.emergency,
+              builder: (context, state) => const EmergencyModalPage(),
             ),
           ],
         ),
 
-        // Onglet 3 : Profil (DANSOU)
+        // Onglet 3 : Maternité (NOUMEDOR)
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.maternity,
+              builder: (context, state) => const MaternityDashboardPage(),
+              routes: [
+                GoRoute(
+                  path: 'vaccines',
+                  builder: (context, state) => const VaccineSchedulePage(),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // Onglet 4 : Profil (DANSOU)
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -78,13 +96,6 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
       ],
-    ),
-
-    // Urgences : hors des onglets, s'ouvre par-dessus (bouton rouge).
-    // Page de DJOBO : il la complétera, la route n'aura pas à changer.
-    GoRoute(
-      path: AppRoutes.emergency,
-      builder: (context, state) => const EmergencyModalPage(),
     ),
   ],
 );

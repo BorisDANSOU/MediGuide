@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,19 +15,26 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
+  Timer? _navigationTimer;
+
   @override
   void initState() {
     super.initState();
     _goNext();
   }
 
+  @override
+  void dispose() {
+    _navigationTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _goNext() async {
-    // Simule le temps de préparation des données
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-
-    context.go(AppRoutes.home);
+    // Simule le temps de préparation des données.
+    _navigationTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      context.go(AppRoutes.home);
+    });
   }
 
   @override
