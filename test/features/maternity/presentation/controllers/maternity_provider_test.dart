@@ -17,7 +17,7 @@ void main() {
           ),
         ],
         cpnSchedules: const [
-          CpnEntity(id: 'cpn1', name: 'CPN 1', month: 1, completed: false),
+          CpnEntity(id: 'cpn1', name: 'CPN 1', week: 12, completed: false),
         ],
       ),
     );

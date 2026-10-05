@@ -3,13 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mediguid/config/routes/app_routes.dart';
 import 'package:mediguid/features/navigation/presentation/widgets/app_bottom_bar.dart';
 
+import '../../../../helpers.dart';
+
 void main() {
   testWidgets('opens Urgences from the FAB while keeping the shell visible', (
     WidgetTester tester,
   ) async {
-    appRouter.go(AppRoutes.home);
-    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, location: AppRoutes.home);
 
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();

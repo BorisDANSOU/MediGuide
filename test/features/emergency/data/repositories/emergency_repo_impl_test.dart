@@ -6,22 +6,20 @@ void main() {
   test('keeps Togo and Côte d’Ivoire emergency numbers separate', () async {
     const repository = EmergencyRepositoryImpl(EmergencyLocalDataSource());
 
-    final togoNumbers = await repository.getEmergenciesByCountry('Togo');
-    final ivoryCoastNumbers = await repository.getEmergenciesByCountry(
-      'Côte d’Ivoire',
-    );
+    final togoNumbers = await repository.getEmergencyNumbers('TG');
+    final ivoryCoastNumbers = await repository.getEmergencyNumbers('CI');
 
     expect(
       togoNumbers.map((item) => item.number),
-      containsAll(['112', '117', '118']),
+      containsAll(['161', '117', '118']),
     );
-    expect(togoNumbers.every((item) => item.country == 'Togo'), isTrue);
+    expect(togoNumbers.every((item) => item.country == 'TG'), isTrue);
     expect(
       ivoryCoastNumbers.map((item) => item.number),
-      containsAll(['185', '180', '170 / 111', '+225 27 20 25 35']),
+      containsAll(['185', '180', '170']),
     );
     expect(
-      ivoryCoastNumbers.every((item) => item.country == 'Côte d’Ivoire'),
+      ivoryCoastNumbers.every((item) => item.country == 'CI'),
       isTrue,
     );
   });

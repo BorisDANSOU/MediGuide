@@ -18,9 +18,10 @@ import '../../domain/repositories/emergency_repository.dart';
 import '../controllers/emergency_provider.dart';
 
 class EmergencyModalPage extends ConsumerStatefulWidget {
-  const EmergencyModalPage({super.key, this.repository});
+  const EmergencyModalPage({super.key, this.repository, this.launchUri});
 
   final EmergencyRepository? repository;
+  final Future<bool> Function(Uri uri)? launchUri;
 
   @override
   ConsumerState<EmergencyModalPage> createState() => _EmergencyModalPageState();
@@ -30,6 +31,17 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
   late final EmergencyProvider _provider;
   final LaunchService _launchService = const LaunchService();
   String? _lastLoadedCountry;
+
+  Future<void> _callPhone(String number) async {
+    final launchUri = widget.launchUri;
+    if (launchUri == null) {
+      await _launchService.callPhone(number);
+      return;
+    }
+
+    final cleaned = number.replaceAll(RegExp(r'[^\d+\-\s]'), '').trim();
+    await launchUri(Uri(scheme: 'tel', path: cleaned));
+  }
 
   @override
   void initState() {
@@ -379,7 +391,7 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
             ),
             const SizedBox(height: 10),
             FilledButton.icon(
-              onPressed: () => _launchService.callPhone(number.number),
+              onPressed: () => _callPhone(number.number),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.emergency,
                 minimumSize: const Size.fromHeight(48),
@@ -444,7 +456,7 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => _launchService.callPhone(hospital.phone),
+                  onPressed: () => _callPhone(hospital.phone),
                   icon: const Icon(Icons.phone_outlined, size: 18),
                   label: const Text('Appeler Urgences'),
                   style: FilledButton.styleFrom(
@@ -528,7 +540,7 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => _launchService.callPhone(pharmacy.phone),
+                  onPressed: () => _callPhone(pharmacy.phone),
                   icon: const Icon(Icons.phone_outlined, size: 18),
                   label: const Text('Appeler'),
                   style: FilledButton.styleFrom(
