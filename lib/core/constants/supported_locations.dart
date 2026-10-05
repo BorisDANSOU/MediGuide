@@ -4,12 +4,18 @@ class SupportedLocation {
   const SupportedLocation({
     required this.country,
     required this.city,
+    required this.countryCode,
     required this.latitude,
     required this.longitude,
   });
 
   final String country;
   final String city;
+
+  /// Code ISO 3166-1 alpha-2 (ex : « CI », « TG », « BF »).
+  /// Utilisé comme clé de filtrage dans la datasource d'urgences.
+  final String countryCode;
+
   final double latitude;
   final double longitude;
 }
@@ -24,18 +30,21 @@ class SupportedLocations {
     SupportedLocation(
       country: 'Togo',
       city: 'Lomé',
+      countryCode: 'TG',
       latitude: 6.1375,
       longitude: 1.2123,
     ),
     SupportedLocation(
       country: 'Burkina Faso',
       city: 'Ouagadougou',
+      countryCode: 'BF',
       latitude: 12.3714,
       longitude: -1.5197,
     ),
     SupportedLocation(
       country: "Côte d'Ivoire",
       city: 'Abidjan',
+      countryCode: 'CI',
       latitude: 5.3600,
       longitude: -4.0083,
     ),
@@ -48,5 +57,12 @@ class SupportedLocations {
   /// (Togo) plutôt que de planter.
   static SupportedLocation forCountry(String country) {
     return all.firstWhere((l) => l.country == country, orElse: () => all.first);
+  }
+
+  /// Retourne le code ISO 3166-1 alpha-2 correspondant au nom du pays.
+  /// Ex : « Côte d'Ivoire » → « CI ».
+  /// Retourne 'TG' (Togo, pays par défaut) si le pays est inconnu.
+  static String isoCodeForCountry(String country) {
+    return forCountry(country).countryCode;
   }
 }
