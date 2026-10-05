@@ -69,21 +69,22 @@ class AppBottomBar extends StatelessWidget {
               ),
             ),
 
-          _NavItem(
-            label: 'Maternité',
-            icon: Icons.pregnant_woman,
-            activeIcon: Icons.pregnant_woman,
-            selected: currentIndex == 3,
-            onTap: () => onTabSelected(3),
-          ),
-          _NavItem(
-            label: 'Profil',
-            icon: Icons.person_outline,
-            activeIcon: Icons.person,
-            selected: currentIndex == 4,
-            onTap: () => onTabSelected(4),
-          ),
-        ],
+            _NavItem(
+              label: 'Maternité',
+              icon: Icons.pregnant_woman,
+              activeIcon: Icons.pregnant_woman,
+              selected: currentIndex == 3,
+              onTap: () => onTabSelected(3),
+            ),
+            _NavItem(
+              label: 'Profil',
+              icon: Icons.person_outline,
+              activeIcon: Icons.person,
+              selected: currentIndex == 4,
+              onTap: () => onTabSelected(4),
+            ),
+          ],
+        ),
       ),
     );
   }

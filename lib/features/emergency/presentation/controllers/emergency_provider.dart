@@ -77,8 +77,10 @@ class EmergencyProvider extends ChangeNotifier {
       _hospitals = results[1] as List<EmergencyHospitalEntity>;
       _pharmacies = results[2] as List<EmergencyPharmacyEntity>;
 
-    } catch (e) {
-      _errorMessage = 'Erreur lors du chargement des données : $e';
+    } catch (error, stackTrace) {
+      debugPrint('Erreur de chargement des données d’urgence : $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _errorMessage = 'Impossible de charger les données d’urgence.';
     } finally {
       _isLoading = false;
       notifyListeners();

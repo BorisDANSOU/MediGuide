@@ -253,10 +253,6 @@ class _MaternityDashboardPageState extends State<MaternityDashboardPage> {
     return null;
   }
 
-  String _formatWeek(int week) {
-    return 'Semaine $week';
-  }
-
   Widget _buildHealthTasksButton() {
     return FilledButton.icon(
       onPressed: () => Navigator.of(context).push(
