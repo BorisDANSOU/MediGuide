@@ -57,4 +57,16 @@ class _FakeMaternityRepository implements MaternityRepository {
 
   @override
   Future<List<CpnEntity>> getCpnSchedule() async => const [];
+
+  @override
+  Future<void> setVaccineCompleted(String vaccineId, bool completed) async {}
+
+  @override
+  Future<void> setCpnCompleted(String cpnId, bool completed) async {}
+
+  @override
+  Future<void> setVaccineReminder(
+    String vaccineId,
+    DateTime? reminderAt,
+  ) async {}
 }

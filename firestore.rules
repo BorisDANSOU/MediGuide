@@ -7,6 +7,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
     // Seul ce compte peut écrire dans medical_centers (seeding).
     // Remplace par l'UID Firebase Auth du compte de seeding.
     function isSeeder() {
@@ -22,7 +26,26 @@ service cloud.firestore {
 
     // Profil utilisateur (pays, ville) : accessible uniquement à son propriétaire.
     match /users/{uid} {
-      allow read, write: if isSignedIn() && request.auth.uid == uid;
+      allow read, write: if isOwner(uid);
+      match /vaccine_progress/{documentId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /cpn_progress/{documentId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /maternity_tasks/{documentId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    match /maternity_vaccines/{vaccineId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /maternity_cpn_schedules/{cpnId} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
   }
 }

@@ -1,7 +1,7 @@
 import '../../domain/entities/health_task_entity.dart';
 
 class HealthTasksLocalDataSource {
-  HealthTasksLocalDataSource();
+  const HealthTasksLocalDataSource();
 
   Future<List<HealthTaskEntity>> loadHealthTasks() async {
     await Future<void>.delayed(const Duration(milliseconds: 100));

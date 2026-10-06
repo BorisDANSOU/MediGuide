@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../config/routes/app_routes.dart';
 import '../../../../core/constants/supported_locations.dart';
+import '../../../../core/widgets/state_message.dart';
 import '../../../user_profile/domain/entities/user_profile_entity.dart';
 import '../../../user_profile/presentation/controllers/user_profile_controller.dart';
 import '../../domain/entities/health_center_entity.dart';
+import '../../domain/failures/health_center_access_failure.dart';
 import '../controllers/health_centers_providers.dart';
 import '../widgets/health_center_marker_style.dart';
 import '../widgets/health_center_markers_layer.dart';
@@ -229,6 +232,29 @@ class _MapPageState extends ConsumerState<MapPage> {
               left: 0,
               right: 0,
               child: LinearProgressIndicator(),
+            ),
+
+          if (centersAsync.hasError)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 72,
+              child: StateMessage(
+                icon: centersAsync.error is HealthCenterAccessFailure
+                    ? Icons.lock_outline
+                    : Icons.cloud_off,
+                message: centersAsync.error is HealthCenterAccessFailure
+                    ? 'Connectez-vous pour afficher les centres de santé.'
+                    : 'Impossible de charger les centres de santé.',
+                actionLabel: centersAsync.error is HealthCenterAccessFailure
+                    ? 'Se connecter'
+                    : 'Réessayer',
+                onAction: centersAsync.error is HealthCenterAccessFailure
+                    ? () => context.push(AppRoutes.auth)
+                    : () => ref.invalidate(
+                        healthCentersByCountryProvider(profile.country),
+                      ),
+              ),
             ),
 
           // Légende des couleurs

@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/home_overview.dart';
+import '../../../health_centers/domain/failures/health_center_access_failure.dart';
 import '../../domain/usecases/get_home_overview.dart';
 
-enum HomeStatus { loading, ready, error }
+enum HomeStatus { loading, ready, error, requiresAuthentication }
 
 class HomeController extends ChangeNotifier {
   HomeController(this._getOverview);
@@ -22,8 +23,10 @@ class HomeController extends ChangeNotifier {
     try {
       _overview = await _getOverview(country: country, city: city);
       _status = HomeStatus.ready;
-    } catch (_) {
-      _status = HomeStatus.error;
+    } catch (error) {
+      _status = error is HealthCenterAccessFailure
+          ? HomeStatus.requiresAuthentication
+          : HomeStatus.error;
     }
     notifyListeners();
   }

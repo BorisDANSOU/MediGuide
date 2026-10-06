@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mediguid/core/theme/app_theme.dart';
+import 'package:mediguid/features/emergency/domain/entities/emergency_facilities_snapshot.dart';
 import 'package:mediguid/features/emergency/domain/entities/emergency_hospital_entity.dart';
 import 'package:mediguid/features/emergency/domain/entities/emergency_number_entity.dart';
 import 'package:mediguid/features/emergency/domain/entities/emergency_pharmacy_entity.dart';
@@ -45,11 +46,73 @@ void main() {
 
     expect(launchedUris, [Uri(scheme: 'tel', path: '185')]);
   });
+
+  testWidgets('marks local fallback and keeps valid empty results empty', (
+    WidgetTester tester,
+  ) async {
+    await _pumpEmergencyPage(
+      tester,
+      facilitiesSnapshot: const EmergencyFacilitiesSnapshot(
+        hospitals: [],
+        pharmacies: [],
+        source: EmergencyFacilitiesSource.localFallback,
+      ),
+    );
+
+    expect(find.textContaining('Données locales hors ligne'), findsOneWidget);
+    expect(find.text('Aucun hôpital trouvé à proximité.'), findsOneWidget);
+  });
+
+  testWidgets('renders only facility facts present in Firestore', (
+    WidgetTester tester,
+  ) async {
+    await _pumpEmergencyPage(
+      tester,
+      facilitiesSnapshot: const EmergencyFacilitiesSnapshot(
+        hospitals: [
+          EmergencyHospitalEntity(
+            id: 'hospital-1',
+            name: 'Centre sans téléphone',
+            country: 'TG',
+            lat: 6.13,
+            lng: 1.22,
+            distanceKm: 0.2,
+            phone: null,
+            services: [],
+            isOpen24h: false,
+          ),
+        ],
+        pharmacies: [
+          EmergencyPharmacyEntity(
+            id: 'pharmacy-1',
+            name: 'Pharmacie de garde',
+            country: 'TG',
+            lat: 6.13,
+            lng: 1.22,
+            distanceM: 20,
+            phone: null,
+            address: null,
+            closeTime: null,
+            isOnDuty: true,
+          ),
+        ],
+        source: EmergencyFacilitiesSource.firestore,
+      ),
+    );
+
+    expect(find.text('Centre sans téléphone'), findsOneWidget);
+    expect(find.text('Pharmacie de garde'), findsOneWidget);
+    expect(find.text('Ouvert 24h/24'), findsNothing);
+    expect(find.text('Service Urgences Adultes'), findsNothing);
+    expect(find.textContaining('Ouvert jusqu’à'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Appeler'), findsNothing);
+  });
 }
 
 Future<void> _pumpEmergencyPage(
   WidgetTester tester, {
   Future<bool> Function(Uri uri)? launchUri,
+  EmergencyFacilitiesSnapshot? facilitiesSnapshot,
 }) async {
   SharedPreferences.setMockInitialValues({
     'profile_country': 'Togo',
@@ -59,14 +122,14 @@ Future<void> _pumpEmergencyPage(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(preferences),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
       child: MaterialApp(
         theme: AppTheme.light,
         home: EmergencyModalPage(
           launchUri: launchUri,
-          repository: _FakeEmergencyRepository(),
+          repository: _FakeEmergencyRepository(
+            facilitiesSnapshot: facilitiesSnapshot,
+          ),
         ),
       ),
     ),
@@ -75,6 +138,10 @@ Future<void> _pumpEmergencyPage(
 }
 
 class _FakeEmergencyRepository implements EmergencyRepository {
+  _FakeEmergencyRepository({this.facilitiesSnapshot});
+
+  final EmergencyFacilitiesSnapshot? facilitiesSnapshot;
+
   @override
   Future<List<EmergencyNumberEntity>> getEmergencyNumbers(
     String countryCode,
@@ -102,6 +169,21 @@ class _FakeEmergencyRepository implements EmergencyRepository {
     required double lng,
     required String countryCode,
   }) async => const [];
+
+  @override
+  Stream<EmergencyFacilitiesSnapshot> watchFacilities({
+    required String countryCode,
+    required String city,
+    required double lat,
+    required double lng,
+  }) => Stream.value(
+    facilitiesSnapshot ??
+        const EmergencyFacilitiesSnapshot(
+          hospitals: [],
+          pharmacies: [],
+          source: EmergencyFacilitiesSource.firestore,
+        ),
+  );
 
   @override
   Future<UserLocationEntity> getUserLocation({

@@ -5,6 +5,7 @@ class VaccineEntity {
     required this.recommendedMonth,
     required this.status,
     this.description,
+    this.reminderAt,
   });
 
   final String id;
@@ -12,4 +13,5 @@ class VaccineEntity {
   final int recommendedMonth;
   final bool status;
   final String? description;
+  final DateTime? reminderAt;
 }

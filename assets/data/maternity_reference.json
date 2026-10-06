@@ -1,0 +1,96 @@
+{
+  "vaccines": [
+    {
+      "id": "bcg",
+      "name": "BCG",
+      "recommendedMonth": 0,
+      "description": "Vaccin indispensable à la naissance contre la tuberculose"
+    },
+    {
+      "id": "polio0",
+      "name": "Polio (VPO)",
+      "recommendedMonth": 0,
+      "description": "Première dose contre la poliomyélite"
+    },
+    {
+      "id": "penta1",
+      "name": "Pentavalent 1",
+      "recommendedMonth": 2,
+      "description": "Contre diphtérie, tétanos, coqueluche, hépatite B, Hib"
+    },
+    {
+      "id": "polio1",
+      "name": "Polio (VPO) 1",
+      "recommendedMonth": 2,
+      "description": "Deuxième dose contre la poliomyélite"
+    },
+    {
+      "id": "penta2",
+      "name": "Pentavalent 2",
+      "recommendedMonth": 3,
+      "description": "Deuxième dose pentavalent"
+    },
+    {
+      "id": "polio2",
+      "name": "Polio (VPO) 2",
+      "recommendedMonth": 3,
+      "description": "Troisième dose contre la poliomyélite"
+    },
+    {
+      "id": "penta3",
+      "name": "Pentavalent 3",
+      "recommendedMonth": 4,
+      "description": "Troisième dose pentavalent"
+    },
+    {
+      "id": "polio3",
+      "name": "Polio (VPO) 3",
+      "recommendedMonth": 4,
+      "description": "Quatrième dose contre la poliomyélite"
+    },
+    {
+      "id": "rrv1",
+      "name": "Rougeole-Rubéole (RRV) 1",
+      "recommendedMonth": 9,
+      "description": "Contre la rougeole et la rubéole"
+    },
+    {
+      "id": "mena",
+      "name": "Méningite A",
+      "recommendedMonth": 15,
+      "description": "Contre la méningite à méningocoque A"
+    },
+    {
+      "id": "rrv2",
+      "name": "Rougeole-Rubéole (RRV) 2",
+      "recommendedMonth": 18,
+      "description": "Deuxième dose contre la rougeole et la rubéole"
+    }
+  ],
+  "cpnSchedules": [
+    {
+      "id": "cpn1",
+      "name": "CPN 1",
+      "recommendedWeek": 12,
+      "description": "Première consultation prénatale - Bilan initial"
+    },
+    {
+      "id": "cpn2",
+      "name": "CPN 2",
+      "recommendedWeek": 20,
+      "description": "Deuxième consultation prénatale - Suivi échographie"
+    },
+    {
+      "id": "cpn3",
+      "name": "CPN 3",
+      "recommendedWeek": 26,
+      "description": "Troisième consultation prénatale - Préparation accouchement"
+    },
+    {
+      "id": "cpn4",
+      "name": "CPN 4",
+      "recommendedWeek": 32,
+      "description": "Quatrième consultation prénatale - Suivi position fœtale"
+    }
+  ]
+}
