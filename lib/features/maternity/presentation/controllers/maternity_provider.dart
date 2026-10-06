@@ -14,7 +14,7 @@ class MaternityProvider extends ChangeNotifier {
           NotificationService(),
         );
 
-  final MaternityRepository repository;
+  MaternityRepository repository;
   final ScheduleVaccineReminder _scheduleReminder;
 
   List<VaccineEntity> _vaccines = const [];
@@ -27,7 +27,25 @@ class MaternityProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  int _loadGeneration = 0;
+
+  void reportError(String message) {
+    _errorMessage = message;
+    notifyListeners();
+  }
+
+  Future<void> replaceRepository(MaternityRepository value) async {
+    if (identical(repository, value)) return;
+    repository = value;
+    _vaccines = const [];
+    _cpnSchedules = const [];
+    _errorMessage = null;
+    notifyListeners();
+    await loadSchedules();
+  }
+
   Future<void> loadSchedules() async {
+    final generation = ++_loadGeneration;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -35,21 +53,101 @@ class MaternityProvider extends ChangeNotifier {
     try {
       final vaccines = await repository.getVaccinationSchedule();
       final cpnSchedules = await repository.getCpnSchedule();
+      if (generation != _loadGeneration) return;
       _vaccines = vaccines;
       _cpnSchedules = cpnSchedules;
     } catch (_) {
-      _errorMessage = 'Impossible de charger les données maternité.';
+      if (generation == _loadGeneration) {
+        _errorMessage = 'Impossible de charger les données maternité.';
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (generation == _loadGeneration) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
-  /// Planifie un rappel pour un vaccin
-  Future<void> scheduleVaccineReminder({
+  Future<bool> setVaccineCompleted(String vaccineId, bool completed) async {
+    try {
+      await repository.setVaccineCompleted(vaccineId, completed);
+      _vaccines = [
+        for (final vaccine in _vaccines)
+          if (vaccine.id == vaccineId)
+            VaccineEntity(
+              id: vaccine.id,
+              name: vaccine.name,
+              recommendedMonth: vaccine.recommendedMonth,
+              status: completed,
+              description: vaccine.description,
+              reminderAt: vaccine.reminderAt,
+            )
+          else
+            vaccine,
+      ];
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } catch (_) {
+      _errorMessage = 'Impossible d’enregistrer la progression du vaccin.';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> setCpnCompleted(String cpnId, bool completed) async {
+    try {
+      await repository.setCpnCompleted(cpnId, completed);
+      _cpnSchedules = [
+        for (final cpn in _cpnSchedules)
+          if (cpn.id == cpnId)
+            CpnEntity(
+              id: cpn.id,
+              name: cpn.name,
+              week: cpn.week,
+              completed: completed,
+              description: cpn.description,
+            )
+          else
+            cpn,
+      ];
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } catch (_) {
+      _errorMessage = 'Impossible d’enregistrer la progression de la CPN.';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> scheduleVaccineReminder({
+    required String vaccineId,
     required String vaccineName,
     required DateTime scheduledDate,
   }) async {
+    try {
+      await repository.setVaccineReminder(vaccineId, scheduledDate);
+      _vaccines = [
+        for (final vaccine in _vaccines)
+          if (vaccine.id == vaccineId)
+            VaccineEntity(
+              id: vaccine.id,
+              name: vaccine.name,
+              recommendedMonth: vaccine.recommendedMonth,
+              status: vaccine.status,
+              description: vaccine.description,
+              reminderAt: scheduledDate,
+            )
+          else
+            vaccine,
+      ];
+    } catch (_) {
+      _errorMessage = 'Impossible de synchroniser la date de rappel.';
+      notifyListeners();
+      return false;
+    }
+
     try {
       await _scheduleReminder(
         title: 'Rappel de vaccination',
@@ -57,10 +155,15 @@ class MaternityProvider extends ChangeNotifier {
         scheduledDate: scheduledDate,
         payload: vaccineName,
       );
+      _errorMessage = null;
       notifyListeners();
-    } catch (e) {
-      _errorMessage = 'Erreur lors de la planification du rappel: $e';
+      return true;
+    } catch (_) {
+      _errorMessage =
+          'La date est synchronisée, mais la notification locale n’a pas '
+          'pu être programmée sur cet appareil.';
       notifyListeners();
+      return false;
     }
   }
 

@@ -6,21 +6,24 @@ import '../../../../core/constants/supported_locations.dart';
 import '../../../../core/services/launch_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../config/routes/app_routes.dart';
+import '../../../health_centers/data/datasources/health_center_remote_ds.dart';
 import '../../../health_centers/presentation/pages/map_page.dart';
 import 'package:mediguid/features/user_profile/domain/entities/user_profile_entity.dart';
 import '../../../user_profile/presentation/controllers/user_profile_controller.dart';
 import '../../data/datasources/emergency_local_ds.dart';
 import '../../data/repositories/emergency_repo_impl.dart';
 import '../../domain/entities/emergency_hospital_entity.dart';
+import '../../domain/entities/emergency_facilities_snapshot.dart';
 import '../../domain/entities/emergency_number_entity.dart';
 import '../../domain/entities/emergency_pharmacy_entity.dart';
 import '../../domain/repositories/emergency_repository.dart';
 import '../controllers/emergency_provider.dart';
 
 class EmergencyModalPage extends ConsumerStatefulWidget {
-  const EmergencyModalPage({super.key, this.repository});
+  const EmergencyModalPage({super.key, this.repository, this.launchUri});
 
   final EmergencyRepository? repository;
+  final Future<bool> Function(Uri uri)? launchUri;
 
   @override
   ConsumerState<EmergencyModalPage> createState() => _EmergencyModalPageState();
@@ -29,14 +32,28 @@ class EmergencyModalPage extends ConsumerStatefulWidget {
 class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
   late final EmergencyProvider _provider;
   final LaunchService _launchService = const LaunchService();
-  String? _lastLoadedCountry;
+  String? _lastLoadedLocation;
+
+  Future<void> _callPhone(String number) async {
+    final launchUri = widget.launchUri;
+    if (launchUri == null) {
+      await _launchService.callPhone(number);
+      return;
+    }
+
+    final cleaned = number.replaceAll(RegExp(r'[^\d+\-\s]'), '').trim();
+    await launchUri(Uri(scheme: 'tel', path: cleaned));
+  }
 
   @override
   void initState() {
     super.initState();
     final repository =
         widget.repository ??
-        const EmergencyRepositoryImpl(EmergencyLocalDataSource());
+        EmergencyRepositoryImpl(
+          const EmergencyLocalDataSource(),
+          remoteDataSource: HealthCenterRemoteDataSource(),
+        );
     _provider = EmergencyProvider(repository);
   }
 
@@ -53,14 +70,15 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
     // Quand le profil est disponible, charge les données d'urgence
     profileAsync.whenData((profile) {
       final isoCode = SupportedLocations.isoCodeForCountry(profile.country);
-      // Recharge seulement si le pays a changé ou si c'est le premier chargement
-      if (_lastLoadedCountry != isoCode) {
-        _lastLoadedCountry = isoCode;
+      final locationKey = '$isoCode:${profile.city}';
+      if (_lastLoadedLocation != locationKey) {
+        _lastLoadedLocation = locationKey;
         _provider.loadEmergencyData(isoCode, profile.city);
       }
     });
 
     final profile = profileAsync.value ?? UserProfileEntity.initial;
+    final countryCode = SupportedLocations.isoCodeForCountry(profile.country);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -77,6 +95,14 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
                 _buildVitalNumbers(profile),
                 const SizedBox(height: 8),
                 _buildLocationMarker(),
+                if (_provider.facilitiesSource ==
+                    EmergencyFacilitiesSource.localFallback) ...[
+                  const SizedBox(height: 12),
+                  _buildNotice(
+                    'Données locales hors ligne : les établissements peuvent '
+                    'ne pas refléter les informations actuelles.',
+                  ),
+                ],
                 const SizedBox(height: 20),
                 
                 // --- Section : Numéros Nationaux ---
@@ -97,13 +123,16 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
                 _buildSectionHeading('Urgences Hospitalières'),
                 const SizedBox(height: 3),
                 const Text(
-                  'Services de réanimation et blocs ouverts 24h/24',
+                  'Établissements hospitaliers à proximité',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 9),
+                if (_provider.facilitiesError != null)
+                  _buildFacilitiesError(countryCode, profile.city)
+                else
                 if (_provider.isLoading)
                   const LinearProgressIndicator(minHeight: 3)
                 else if (_provider.hospitals.isEmpty)
@@ -117,13 +146,16 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
                 _buildSectionHeading('Pharmacies de Garde Immédiates'),
                 const SizedBox(height: 3),
                 const Text(
-                  'Pharmacies ouvertes actuellement dans votre secteur',
+                  'Pharmacies signalées de garde',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 9),
+                if (_provider.facilitiesError != null)
+                  _buildFacilitiesError(countryCode, profile.city)
+                else
                 if (_provider.isLoading)
                   const LinearProgressIndicator(minHeight: 3)
                 else if (_provider.pharmacies.isEmpty)
@@ -379,7 +411,7 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
             ),
             const SizedBox(height: 10),
             FilledButton.icon(
-              onPressed: () => _launchService.callPhone(number.number),
+              onPressed: () => _callPhone(number.number),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.emergency,
                 minimumSize: const Size.fromHeight(48),
@@ -420,14 +452,20 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
                       style: Theme.of(context).textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
-                    Text(
-                      hospital.services.join(', '),
-                      style: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(color: AppColors.textSecondary),
-                    ),
+                    if (hospital.services.isNotEmpty)
+                      Text(
+                        hospital.services.join(', '),
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                    if (hospital.isOpen24h)
+                      const Text(
+                        'Ouvert 24h/24',
+                        style: TextStyle(color: AppColors.brand),
+                      ),
                     const SizedBox(height: 4),
                     Text(
-                      'À ${hospital.distanceKm} km',
+                      'À ${hospital.distanceKm.toStringAsFixed(1)} km',
                       style: const TextStyle(
                         color: AppColors.brand,
                         fontSize: 12,
@@ -442,17 +480,19 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => _launchService.callPhone(hospital.phone),
-                  icon: const Icon(Icons.phone_outlined, size: 18),
-                  label: const Text('Appeler Urgences'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44),
+              if (hospital.phone != null) ...[
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _callPhone(hospital.phone!),
+                    icon: const Icon(Icons.phone_outlined, size: 18),
+                    label: const Text('Appeler'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(44),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: FilledButton.tonalIcon(
                   onPressed: () {
@@ -501,19 +541,25 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
                 const Icon(Icons.check_circle, color: Colors.green, size: 18),
             ],
           ),
-          Text(pharmacy.address, style: const TextStyle(color: AppColors.textSecondary)),
-          const SizedBox(height: 3),
+          if (pharmacy.address != null)
+            Text(
+              pharmacy.address!,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          if (pharmacy.closeTime != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              pharmacy.closeTime!,
+              style: const TextStyle(
+                color: Colors.green,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                pharmacy.closeTime,
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
               Text(
                 'À ${pharmacy.distanceM} m',
                 style: const TextStyle(
@@ -524,11 +570,12 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
             ],
           ),
           const SizedBox(height: 9),
-          Row(
-            children: [
+          if (pharmacy.phone != null)
+            Row(
+              children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => _launchService.callPhone(pharmacy.phone),
+                  onPressed: () => _callPhone(pharmacy.phone!),
                   icon: const Icon(Icons.phone_outlined, size: 18),
                   label: const Text('Appeler'),
                   style: FilledButton.styleFrom(
@@ -554,8 +601,8 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
                 },
                 icon: const Icon(Icons.directions_outlined),
               ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     ),
@@ -602,5 +649,17 @@ class _EmergencyModalPageState extends ConsumerState<EmergencyModalPage> {
       message,
       style: const TextStyle(color: AppColors.textSecondary),
     ),
+  );
+
+  Widget _buildFacilitiesError(String countryCode, String city) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _buildNotice(_provider.facilitiesError!),
+      TextButton.icon(
+        onPressed: () => _provider.loadEmergencyData(countryCode, city),
+        icon: const Icon(Icons.refresh),
+        label: const Text('Réessayer'),
+      ),
+    ],
   );
 }

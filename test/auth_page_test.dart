@@ -143,6 +143,17 @@ void main() {
     expect(find.text('Urgence vitale ?'), findsOneWidget);
   });
 
+  testWidgets('« Accès urgence express » ouvre les urgences dans la coquille', (
+    tester,
+  ) async {
+    await pumpApp(tester, location: AppRoutes.auth);
+    await _tap(tester, 'Accès urgence express');
+
+    expect(find.text('Services nationaux prioritaires'), findsOneWidget);
+    expect(find.text('Se connecter'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   test('Messages d’erreur Firebase traduits', () {
     expect(
       authErrorMessage('email-already-in-use'),

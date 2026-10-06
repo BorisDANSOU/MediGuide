@@ -9,13 +9,13 @@ class EmergencyPharmacyEntity {
   const EmergencyPharmacyEntity({
     required this.id,
     required this.name,
-    required this.address,
-    required this.phone,
+    this.address,
+    this.phone,
     required this.country,
     required this.lat,
     required this.lng,
     required this.distanceM,
-    required this.closeTime,
+    this.closeTime,
     this.isOnDuty = false,
   });
 
@@ -26,10 +26,10 @@ class EmergencyPharmacyEntity {
   final String name;
 
   /// Adresse / repère (ex : « Cocody Deux-Plateaux, face ENA »).
-  final String address;
+  final String? address;
 
   /// Numéro à afficher et à appeler (ex : « +225 27 22 41 55 »).
-  final String phone;
+  final String? phone;
 
   /// Code ISO 3166-1 alpha-2 du pays (ex : « CI », « TG », « BF »).
   final String country;
@@ -44,7 +44,7 @@ class EmergencyPharmacyEntity {
   final int distanceM;
 
   /// Heure de fermeture affichée (ex : « Ouvert jusqu'à 08h00 demain »).
-  final String closeTime;
+  final String? closeTime;
 
   /// `true` → puce verte animée « Service de garde actif ».
   final bool isOnDuty;

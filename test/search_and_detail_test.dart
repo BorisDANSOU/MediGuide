@@ -6,10 +6,12 @@ import 'package:mediguid/config/routes/app_routes.dart';
 import 'package:mediguid/features/health_centers/domain/entities/center_filter.dart';
 import 'package:mediguid/features/health_centers/domain/entities/health_center_entity.dart';
 import 'package:mediguid/features/health_centers/domain/entities/nearby_center.dart';
+import 'package:mediguid/features/health_centers/domain/failures/health_center_access_failure.dart';
 import 'package:mediguid/features/health_centers/domain/usecases/filter_health_centers.dart';
 import 'package:mediguid/features/health_centers/presentation/pages/health_center_detail_page.dart';
 
 import 'helpers.dart';
+import 'fakes/fake_health_center_repository.dart';
 
 NearbyCenter _n(HealthCenterEntity c, double km) =>
     NearbyCenter(center: c, distanceKm: km);
@@ -55,6 +57,40 @@ void main() {
   });
 
   group('SearchPage', () {
+    testWidgets('Firestore permission denied invite à se connecter', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        location: AppRoutes.search,
+        healthCenters: FakeHealthCenterRepository(
+          error: const HealthCenterAccessFailure(),
+        ),
+      );
+
+      expect(
+        find.text('Connectez-vous pour afficher les centres de santé.'),
+        findsOneWidget,
+      );
+      await tapVisible(tester, find.text('Se connecter'));
+      expect(find.text('Créer un compte'), findsOneWidget);
+    });
+
+    testWidgets('les erreurs réseau restent réessayables', (tester) async {
+      await pumpApp(
+        tester,
+        location: AppRoutes.search,
+        healthCenters: FakeHealthCenterRepository(error: Exception('offline')),
+      );
+
+      expect(find.text('Impossible de charger les centres de santé.'), findsOneWidget);
+      expect(find.text('Réessayer'), findsOneWidget);
+      expect(
+        find.text('Connectez-vous pour afficher les centres de santé.'),
+        findsNothing,
+      );
+    });
+
     testWidgets('filtre en direct puis propose de tout effacer', (
       tester,
     ) async {

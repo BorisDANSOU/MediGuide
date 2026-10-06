@@ -1,11 +1,13 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../data/datasources/maternity_local_ds.dart';
-import '../../data/repositories/maternity_repo_impl.dart';
 import '../../domain/entities/vaccine_entity.dart';
 import '../../domain/repositories/maternity_repository.dart';
 import '../controllers/maternity_provider.dart';
+import '../maternity_repository_factory.dart';
 import '../widgets/maternity_dashboard_widgets.dart';
 import '../widgets/vaccine_card.dart';
 
@@ -20,18 +22,34 @@ class VaccineSchedulePage extends StatefulWidget {
 
 class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
   late final MaternityProvider _provider;
+  StreamSubscription<User?>? _authSubscription;
+  String? _activeUid;
+  bool _isGuest = true;
 
   @override
   void initState() {
     super.initState();
-    final repository =
-        widget.repository ??
-        const MaternityRepositoryImpl(MaternityLocalDataSource());
+    _activeUid = MaternityRepositoryFactory.currentUid;
+    _isGuest = _activeUid == null;
+    final repository = widget.repository ??
+        MaternityRepositoryFactory.maternity(uid: _activeUid);
     _provider = MaternityProvider(repository)..loadSchedules();
+    if (widget.repository == null) {
+      _authSubscription = MaternityRepositoryFactory.authChanges?.listen(
+        _onAuthChanged,
+        onError: (Object error) {
+          _provider.reportError(
+            'Impossible de vérifier la session. Réessayez de recharger.',
+          );
+        },
+      );
+    }
   }
 
   @override
   void dispose() {
+    final subscription = _authSubscription;
+    if (subscription != null) unawaited(subscription.cancel());
     _provider.dispose();
     super.dispose();
   }
@@ -39,7 +57,16 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendrier vaccinal')),
+      appBar: AppBar(
+        title: const Text('Calendrier vaccinal'),
+        actions: [
+          IconButton(
+            tooltip: 'Recharger',
+            onPressed: _provider.loadSchedules,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: AnimatedBuilder(
@@ -54,7 +81,9 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Calendrier chargé depuis les données locales.',
+                _isGuest
+                    ? 'Données locales, enregistrées sur cet appareil uniquement.'
+                    : 'Calendrier synchronisé avec votre compte.',
                 style: Theme.of(context).textTheme.bodyMedium
                     ?.copyWith(color: AppColors.textSecondary),
               ),
@@ -65,6 +94,11 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
               if (_provider.errorMessage != null) ...[
                 const SizedBox(height: 12),
                 MaternityNotice(message: _provider.errorMessage!),
+                TextButton.icon(
+                  onPressed: _provider.loadSchedules,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Réessayer'),
+                ),
               ],
               const SizedBox(height: 12),
               if (_provider.vaccines.isEmpty && !_provider.isLoading)
@@ -80,6 +114,15 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
                       month: vaccine.recommendedMonth,
                       completed: vaccine.status,
                       description: vaccine.description,
+                      reminderAt: vaccine.reminderAt,
+                      onCompletedChanged: (completed) async {
+                        if (!await _provider.setVaccineCompleted(
+                          vaccine.id,
+                          completed,
+                        )) {
+                          return;
+                        }
+                      },
                       onScheduleReminder: !vaccine.status
                           ? () => _showScheduleDialog(vaccine)
                           : null,
@@ -116,11 +159,12 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
                 );
                 if (selectedDate != null && context.mounted) {
                   Navigator.of(context).pop();
-                  await _provider.scheduleVaccineReminder(
+                  final saved = await _provider.scheduleVaccineReminder(
+                    vaccineId: vaccine.id,
                     vaccineName: vaccine.name,
                     scheduledDate: selectedDate,
                   );
-                  if (context.mounted) {
+                  if (saved && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -129,6 +173,7 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
                       ),
                     );
                   }
+
                 }
               },
               icon: const Icon(Icons.calendar_today),
@@ -144,5 +189,18 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
         ],
       ),
     );
+  }
+
+  void _onAuthChanged(User? user) {
+    final uid = user?.uid;
+    if (!mounted || uid == _activeUid) return;
+    _activeUid = uid;
+    _isGuest = uid == null;
+    unawaited(
+      _provider.replaceRepository(
+        MaternityRepositoryFactory.maternity(uid: uid),
+      ),
+    );
+    setState(() {});
   }
 }

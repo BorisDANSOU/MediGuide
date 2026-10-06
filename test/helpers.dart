@@ -7,6 +7,9 @@ import 'package:mediguid/config/routes/app_routes.dart';
 import 'package:mediguid/core/theme/app_theme.dart';
 import 'package:mediguid/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mediguid/features/auth/presentation/controllers/auth_providers.dart';
+import 'package:mediguid/features/health_centers/data/repositories/demo_health_center_repository.dart';
+import 'package:mediguid/features/health_centers/domain/repositories/health_center_repository.dart';
+import 'package:mediguid/features/health_centers/presentation/controllers/health_centers_providers.dart';
 import 'package:mediguid/features/user_profile/presentation/controllers/user_profile_controller.dart';
 
 import 'fakes/fake_auth_repository.dart';
@@ -35,6 +38,7 @@ Future<void> pumpApp(
   String country = 'Burkina Faso',
   String city = 'Ouagadougou',
   AuthRepository? auth,
+  HealthCenterRepository? healthCenters,
 }) async {
   SharedPreferences.setMockInitialValues({
     'profile_country': country,
@@ -46,6 +50,9 @@ Future<void> pumpApp(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository()),
+        healthCenterRepositoryProvider.overrideWithValue(
+          healthCenters ?? const DemoHealthCenterRepository(),
+        ),
       ],
       child: MaterialApp.router(
         theme: AppTheme.light,

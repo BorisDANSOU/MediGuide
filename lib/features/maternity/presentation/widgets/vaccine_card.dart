@@ -10,6 +10,8 @@ class VaccineCard extends StatelessWidget {
     required this.completed,
     this.description,
     this.onScheduleReminder,
+    this.onCompletedChanged,
+    this.reminderAt,
   });
 
   final String name;
@@ -17,14 +19,22 @@ class VaccineCard extends StatelessWidget {
   final bool completed;
   final String? description;
   final VoidCallback? onScheduleReminder;
+  final ValueChanged<bool>? onCompletedChanged;
+  final DateTime? reminderAt;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        leading: Icon(
-          completed ? Icons.check_circle : Icons.pending,
-          color: completed ? AppColors.primary : AppColors.info,
+        leading: IconButton(
+          tooltip: completed ? 'Vaccin marqué comme fait' : 'Marquer le vaccin comme fait',
+          onPressed: onCompletedChanged == null
+              ? null
+              : () => onCompletedChanged!(!completed),
+          icon: Icon(
+            completed ? Icons.check_circle : Icons.pending,
+            color: completed ? AppColors.primary : AppColors.info,
+          ),
         ),
         title: Text(name),
         subtitle: Column(
@@ -32,15 +42,17 @@ class VaccineCard extends StatelessWidget {
           children: [
             Text('Mois recommandé : $month'),
             if (description != null) Text(description!),
+            if (reminderAt != null)
+              Text('Rappel : ${reminderAt!.day}/${reminderAt!.month}/${reminderAt!.year}'),
           ],
         ),
-        trailing: onScheduleReminder != null
-            ? IconButton(
+        trailing: onScheduleReminder == null
+            ? null
+            : IconButton(
                 icon: const Icon(Icons.notifications_outlined),
                 onPressed: onScheduleReminder,
                 tooltip: 'Planifier un rappel',
-              )
-            : null,
+              ),
       ),
     );
   }

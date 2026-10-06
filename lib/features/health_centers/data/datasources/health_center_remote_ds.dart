@@ -1,24 +1,50 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../models/medical_center.dart';
+
 class HealthCenterRemoteDataSource {
-  const HealthCenterRemoteDataSource();
+  HealthCenterRemoteDataSource({this.firestore});
 
-  Future<List<Map<String, dynamic>>> fetchNearbyCenters({
-    required double latitude,
-    required double longitude,
-    double radiusInKm = 10,
+  static const _collection = 'medical_centers';
+
+  final FirebaseFirestore? firestore;
+
+  FirebaseFirestore get _db => firestore ?? FirebaseFirestore.instance;
+
+  Future<List<MedicalCenter>> fetchCenters({
+    String? countryCode,
+    String? city,
   }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    Query<Map<String, dynamic>> query = _db.collection(_collection);
+    if (countryCode != null) {
+      query = query.where('countryCode', isEqualTo: countryCode);
+    }
+    if (city != null) {
+      query = query.where('city', isEqualTo: city);
+    }
 
-    return [
-      {
-        'id': 'h1',
-        'name': 'Centre Hospitalier Régional',
-        'type': 'hospital',
-        'latitude': latitude,
-        'longitude': longitude,
-        'city': 'Lomé',
-        'country': 'Togo',
-        'phone': '+228 00000000',
-      },
-    ];
+    final snapshot = await query.get();
+    return snapshot.docs
+        .map((document) => MedicalCenter.fromMap(document.id, document.data()))
+        .toList();
+  }
+
+  Stream<List<MedicalCenter>> watchCenters({
+    required String countryCode,
+    required String city,
+  }) {
+    return _db
+        .collection(_collection)
+        .where('countryCode', isEqualTo: countryCode)
+        .where('city', isEqualTo: city)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (document) =>
+                    MedicalCenter.fromMap(document.id, document.data()),
+              )
+              .toList(),
+        );
   }
 }

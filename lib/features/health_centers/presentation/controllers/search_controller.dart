@@ -2,10 +2,11 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/center_filter.dart';
 import '../../domain/entities/nearby_center.dart';
+import '../../domain/failures/health_center_access_failure.dart';
 import '../../domain/usecases/filter_health_centers.dart';
 import '../../domain/usecases/get_centers_around.dart';
 
-enum SearchStatus { loading, ready, error }
+enum SearchStatus { loading, ready, error, requiresAuthentication }
 
 /// État de l'écran de recherche : texte saisi, puce active et résultats.
 class CenterSearchController extends ChangeNotifier {
@@ -36,8 +37,10 @@ class CenterSearchController extends ChangeNotifier {
     try {
       _all = await getCentersAround(country: country, city: city);
       _status = SearchStatus.ready;
-    } catch (_) {
-      _status = SearchStatus.error;
+    } catch (error) {
+      _status = error is HealthCenterAccessFailure
+          ? SearchStatus.requiresAuthentication
+          : SearchStatus.error;
     }
     notifyListeners();
   }

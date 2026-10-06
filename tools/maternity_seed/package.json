@@ -1,0 +1,12 @@
+{
+  "name": "mediguide-maternity-seed",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node import.mjs",
+    "test": "node --test import.test.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.4.0"
+  }
+}
