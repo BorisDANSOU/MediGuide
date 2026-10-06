@@ -6,7 +6,7 @@ import '../../domain/repositories/health_tasks_repository.dart';
 class HealthTasksProvider extends ChangeNotifier {
   HealthTasksProvider(this.repository);
 
-  final HealthTasksRepository repository;
+  HealthTasksRepository repository;
 
   List<HealthTaskEntity> _tasks = const [];
   List<HealthTaskEntity> get tasks => _tasks;
@@ -23,20 +23,55 @@ class HealthTasksProvider extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  int _loadGeneration = 0;
+
+  Future<void> replaceRepository(HealthTasksRepository value) async {
+    if (identical(repository, value)) return;
+    repository = value;
+    _tasks = const [];
+    _urgentTasks = const [];
+    _overdueTasks = const [];
+    _errorMessage = null;
+    notifyListeners();
+    await loadTasks();
+  }
+
+  void reportError(String message) {
+    _errorMessage = message;
+    notifyListeners();
+  }
+
   Future<void> loadTasks() async {
+    final generation = ++_loadGeneration;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _tasks = await repository.getHealthTasks();
-      _urgentTasks = await repository.getUrgentTasks();
-      _overdueTasks = await repository.getOverdueTasks();
+      final tasks = await repository.getHealthTasks();
+      if (generation != _loadGeneration) return;
+      final now = DateTime.now();
+      _tasks = tasks;
+      _urgentTasks = tasks
+          .where(
+            (task) =>
+                (task.priority == HealthTaskPriority.urgent ||
+                    task.priority == HealthTaskPriority.high) &&
+                !task.isCompleted,
+          )
+          .toList(growable: false);
+      _overdueTasks = tasks
+          .where((task) => task.dueDate.isBefore(now) && !task.isCompleted)
+          .toList(growable: false);
     } catch (e) {
-      _errorMessage = 'Erreur lors du chargement des tâches: $e';
+      if (generation == _loadGeneration) {
+        _errorMessage = 'Erreur lors du chargement des tâches: $e';
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (generation == _loadGeneration) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 

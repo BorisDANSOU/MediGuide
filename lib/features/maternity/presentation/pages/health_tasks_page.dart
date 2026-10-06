@@ -1,11 +1,13 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../data/datasources/health_tasks_local_ds.dart';
-import '../../data/repositories/health_tasks_repo_impl.dart';
 import '../../domain/entities/health_task_entity.dart';
 import '../../domain/repositories/health_tasks_repository.dart';
 import '../controllers/health_tasks_provider.dart';
+import '../maternity_repository_factory.dart';
 
 class HealthTasksPage extends StatefulWidget {
   const HealthTasksPage({super.key, this.repository});
@@ -18,17 +20,34 @@ class HealthTasksPage extends StatefulWidget {
 
 class _HealthTasksPageState extends State<HealthTasksPage> {
   late final HealthTasksProvider _provider;
+  StreamSubscription<User?>? _authSubscription;
+  String? _activeUid;
+  bool _isGuest = true;
 
   @override
   void initState() {
     super.initState();
+    _activeUid = MaternityRepositoryFactory.currentUid;
+    _isGuest = _activeUid == null;
     final repository = widget.repository ??
-        HealthTasksRepoImpl(HealthTasksLocalDataSource());
+        MaternityRepositoryFactory.healthTasks(uid: _activeUid);
     _provider = HealthTasksProvider(repository)..loadTasks();
+    if (widget.repository == null) {
+      _authSubscription = MaternityRepositoryFactory.authChanges?.listen(
+        _onAuthChanged,
+        onError: (Object error) {
+          _provider.reportError(
+            'Impossible de vérifier la session. Réessayez de recharger.',
+          );
+        },
+      );
+    }
   }
 
   @override
   void dispose() {
+    final subscription = _authSubscription;
+    if (subscription != null) unawaited(subscription.cancel());
     _provider.dispose();
     super.dispose();
   }
@@ -52,6 +71,18 @@ class _HealthTasksPageState extends State<HealthTasksPage> {
           builder: (context, _) => Column(
             children: [
               _buildProgressCard(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _isGuest
+                        ? 'Données locales · enregistrées sur cet appareil'
+                        : 'Tâches synchronisées avec votre compte',
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              ),
               Expanded(
                 child: _buildTasksList(),
               ),
@@ -225,5 +256,18 @@ class _HealthTasksPageState extends State<HealthTasksPage> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _onAuthChanged(User? user) {
+    final uid = user?.uid;
+    if (!mounted || uid == _activeUid) return;
+    _activeUid = uid;
+    _isGuest = uid == null;
+    unawaited(
+      _provider.replaceRepository(
+        MaternityRepositoryFactory.healthTasks(uid: uid),
+      ),
+    );
+    setState(() {});
   }
 }

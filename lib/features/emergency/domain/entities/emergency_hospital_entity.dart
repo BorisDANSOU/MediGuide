@@ -9,12 +9,12 @@ class EmergencyHospitalEntity {
   const EmergencyHospitalEntity({
     required this.id,
     required this.name,
-    required this.phone,
+    this.phone,
     required this.country,
     required this.lat,
     required this.lng,
     required this.distanceKm,
-    required this.services,
+    this.services = const [],
     this.isOpen24h = true,
     this.imageAssetPath,
   });
@@ -26,7 +26,7 @@ class EmergencyHospitalEntity {
   final String name;
 
   /// Numéro de téléphone des urgences (ex : « +225 27 22 48 00 »).
-  final String phone;
+  final String? phone;
 
   /// Code ISO 3166-1 alpha-2 du pays (ex : « CI », « TG », « BF »).
   final String country;

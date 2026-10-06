@@ -111,7 +111,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                       ),
                       const SizedBox(height: 20),
                       _EmergencyAccessCard(
-                        onTap: () => context.push(AppRoutes.emergency),
+                        onTap: () => context.go(AppRoutes.emergency),
                       ),
                       const SizedBox(height: 20),
                       SegmentedButton<AuthMode>(

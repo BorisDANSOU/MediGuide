@@ -6,9 +6,11 @@ import '../../domain/entities/cpn_entity.dart';
 class MaternityDashboardHeader extends StatelessWidget {
   const MaternityDashboardHeader({
     super.key,
+    this.dossierName,
     required this.onSettings,
     required this.onProfile,
   });
+  final String? dossierName;
   final VoidCallback onSettings;
   final VoidCallback onProfile;
 
@@ -131,12 +133,13 @@ class MaternityDashboardHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    'Dossier suivi : Awa K. (28 ans) · ID #MG-9821',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                  if (dossierName != null)
+                    Text(
+                      'Dossier suivi : $dossierName',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -315,17 +318,9 @@ class MaternityEmergencyCard extends StatelessWidget {
 }
 
 class PregnancySummaryCard extends StatelessWidget {
-  const PregnancySummaryCard({
-    super.key,
-    required this.cpn,
-    required this.presenceConfirmed,
-    required this.onConfirmPresence,
-    required this.onItinerary,
-  });
+  const PregnancySummaryCard({super.key, required this.cpn});
+
   final CpnEntity? cpn;
-  final bool presenceConfirmed;
-  final VoidCallback onConfirmPresence;
-  final VoidCallback onItinerary;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -336,166 +331,40 @@ class PregnancySummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text.rich(
-                TextSpan(
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              const Icon(
+                Icons.event_note_outlined,
+                color: AppColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Prochaine consultation recommandée',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,
                   ),
-                  children: const [
-                    TextSpan(text: '28e SA '),
-                    TextSpan(
-                      text: '(7ème mois)',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
                 ),
-              ),
-              const Spacer(),
-              const MaternityStatusBadge(
-                label: 'T3 • Trimestre Vital',
-                background: AppColors.infoSoft,
-                foreground: AppColors.primary,
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: const LinearProgressIndicator(
-              value: 28 / 40,
-              minHeight: 9,
-              backgroundColor: AppColors.surfaceHigh,
-              color: AppColors.primary,
+          const SizedBox(height: 12),
+          if (cpn == null)
+            const Text('Aucune consultation CPN à venir dans le calendrier.')
+          else ...[
+            Text(
+              cpn!.name,
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
-          ),
-          const SizedBox(height: 7),
-          const Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Début (Semaine 1)',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              Text(
-                'Terme estimé : 14 Nov. 2025',
-                style: TextStyle(fontSize: 10, color: AppColors.textPrimary),
-              ),
-              SizedBox(width: 8),
-              Text(
-                '40 SA',
-                style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceLow,
-              borderRadius: BorderRadius.circular(14),
+            const SizedBox(height: 4),
+            Text('Semaine recommandée : ${cpn!.week}'),
+            const SizedBox(height: 8),
+            const Text(
+              'Recommandation du calendrier — aucun rendez-vous confirmé.',
+              style: TextStyle(color: AppColors.textSecondary),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.event_available,
-                      color: AppColors.primary,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    const Expanded(
-                      child: Text(
-                        'Prochaine étape programmée',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    MaternityStatusBadge(
-                      label: cpn == null ? 'À planifier' : 'Dans 4 jours',
-                      background: AppColors.infoSoft,
-                      foreground: AppColors.info,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  cpn == null
-                      ? 'Aucune consultation prénatale planifiée'
-                      : 'Consultation Prénatale (${cpn!.name})',
-                  style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                if (cpn != null) ...[
-                  const SizedBox(height: 7),
-                  const MaternityDetailLine(
-                    icon: Icons.access_time,
-                    text: 'Jeudi 18 Septembre à 09h00',
-                  ),
-                  const MaternityDetailLine(
-                    icon: Icons.location_city,
-                    text: 'Centre Médical Urbain (CMU) - Service…',
-                  ),
-                  const MaternityDetailLine(
-                    icon: Icons.person_outline,
-                    text: 'Dr. Konan • Sage-Femme d’État',
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: onConfirmPresence,
-                          icon: Icon(
-                            presenceConfirmed
-                                ? Icons.check
-                                : Icons.person_add_alt_1,
-                            size: 16,
-                          ),
-                          label: Text(
-                            presenceConfirmed
-                                ? 'Présence confirmée'
-                                : 'Confirmer présence',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(42),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton.tonalIcon(
-                          onPressed: onItinerary,
-                          icon: const Icon(Icons.navigation_outlined, size: 16),
-                          label: const Text('Itinéraire'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(42),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     ),
@@ -546,16 +415,16 @@ class MaternityExamCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.status,
-    required this.details,
-    required this.footer,
+    this.details,
+    this.footer,
     required this.onAction,
     this.actionLabel,
     this.isComplete = false,
   });
   final String title;
   final String status;
-  final String details;
-  final String footer;
+  final String? details;
+  final String? footer;
   final String? actionLabel;
   final VoidCallback onAction;
   final bool isComplete;
@@ -578,7 +447,7 @@ class MaternityExamCard extends StatelessWidget {
               ),
               child: Icon(
                 isComplete
-                    ? Icons.receipt_long_outlined
+                    ? Icons.task_alt
                     : Icons.medical_services_outlined,
                 color: AppColors.primary,
                 size: 20,
@@ -609,48 +478,55 @@ class MaternityExamCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    details,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          footer,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 11,
-                          ),
-                        ),
+                  if (details != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      details!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
                       ),
-                      if (actionLabel != null)
-                        TextButton(
+                    ),
+                  ],
+                  if (footer != null || actionLabel != null) ...[
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        if (footer != null)
+                          Expanded(
+                          child: Text(
+                            footer!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 11,
+                            ),
+                          ),
+                          ),
+                        if (actionLabel != null)
+                          TextButton(
                           onPressed: onAction,
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 2,
+                            ),
                             minimumSize: const Size(0, 32),
                           ),
                           child: Text(actionLabel!),
-                        )
-                      else
-                        IconButton(
+                          )
+                        else
+                          IconButton(
                           tooltip: 'Détails',
                           onPressed: onAction,
                           icon: const Icon(Icons.chevron_right),
                           color: AppColors.textSecondary,
                           visualDensity: VisualDensity.compact,
-                        ),
-                    ],
-                  ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

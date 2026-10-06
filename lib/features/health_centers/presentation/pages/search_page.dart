@@ -125,6 +125,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           actionLabel: 'Réessayer',
           onAction: _load,
         );
+      case SearchStatus.requiresAuthentication:
+        return StateMessage(
+          icon: Icons.lock_outline,
+          message: 'Connectez-vous pour afficher les centres de santé.',
+          actionLabel: 'Se connecter',
+          onAction: () => context.push(AppRoutes.auth),
+        );
       case SearchStatus.ready:
         final results = _controller.results;
         return LayoutBuilder(

@@ -4,7 +4,7 @@ import 'package:mediguid/features/emergency/data/repositories/emergency_repo_imp
 
 void main() {
   test('keeps Togo and Côte d’Ivoire emergency numbers separate', () async {
-    const repository = EmergencyRepositoryImpl(EmergencyLocalDataSource());
+    final repository = EmergencyRepositoryImpl(EmergencyLocalDataSource());
 
     final togoNumbers = await repository.getEmergencyNumbers('TG');
     final ivoryCoastNumbers = await repository.getEmergencyNumbers('CI');

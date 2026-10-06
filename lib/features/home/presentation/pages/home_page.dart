@@ -225,6 +225,15 @@ class _HomePageState extends ConsumerState<HomePage> {
             onAction: () => _load(profile),
           ),
         ];
+      case HomeStatus.requiresAuthentication:
+        return [
+          StateMessage(
+            icon: Icons.lock_outline,
+            message: 'Connectez-vous pour afficher les centres de santé.',
+            actionLabel: 'Se connecter',
+            onAction: () => context.push(AppRoutes.auth),
+          ),
+        ];
       case HomeStatus.ready:
         final overview = _controller.overview!;
         return [
