@@ -5,12 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config/routes/app_routes.dart';
 import 'core/services/firestore_offline.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/user_profile/presentation/controllers/user_profile_controller.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialiser le service de notifications
+  final notificationService = NotificationService();
+  await notificationService.initialize();
 
   // Connexion à Firebase
   try {

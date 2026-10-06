@@ -8,35 +8,34 @@ import '../../features/health_centers/presentation/pages/health_center_detail_pa
 import '../../features/health_centers/presentation/pages/map_page.dart';
 import '../../features/health_centers/presentation/pages/search_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/maternity/presentation/pages/maternity_dashboard_page.dart';
+import '../../features/maternity/presentation/pages/vaccine_schedule_page.dart';
 import '../../features/navigation/presentation/pages/main_shell_page.dart';
-import '../../features/navigation/presentation/widgets/placeholder_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/user_profile/presentation/pages/profile_page.dart';
 
-/// Chemins des routes centralisés ici : on évite d'écrire '/home'
-/// en dur dans les écrans (source de fautes de frappe).
+/// Chemins des routes centralisés ici 
 class AppRoutes {
-  AppRoutes._(); // Classe utilitaire : pas d'instance
+  AppRoutes._(); // Classe utilitaire 
 
   static const String splash = '/';
   static const String home = '/home';
   static const String map = '/map';
   static const String maternity = '/maternity';
+  static const String vaccines = '/maternity/vaccines';
   static const String profile = '/profile';
   static const String emergency = '/emergency';
   static const String auth = '/auth';
 
-  /// Recherche, dans l'onglet Accueil : `/home/search?filter=guard`.
   static const String search = '/home/search';
 
-  /// Fiche d'un centre, dans l'onglet Accueil (le centre passe en `extra`).
   static const String center = '/home/center';
 
   static String searchWith(CenterFilter filter) =>
       filter == CenterFilter.all ? search : '$search?filter=${filter.name}';
 }
 
-/// Crée le routeur. [initialLocation] sert aux tests.
+/// Crée le routeur. initialLocation sert aux tests.
 GoRouter createAppRouter({String initialLocation = AppRoutes.splash}) =>
     GoRouter(
       initialLocation: initialLocation,
@@ -46,15 +45,15 @@ GoRouter createAppRouter({String initialLocation = AppRoutes.splash}) =>
           builder: (context, state) => const SplashPage(),
         ),
 
-        // Les 4 onglets partagent la même coquille (barre du bas).
-        // indexedStack garde chaque onglet en mémoire : on retrouve
-        // la carte telle qu'on l'a laissée en revenant dessus.
+        GoRoute(
+          path: AppRoutes.auth,
+          builder: (context, state) => const AuthPage(),
+        ),
+
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) =>
               MainShellPage(navigationShell: navigationShell),
           branches: [
-            // Onglet 0 : Accueil (KABORE), avec la recherche et la fiche
-            // en sous-pages : la barre du bas reste visible.
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -95,18 +94,33 @@ GoRouter createAppRouter({String initialLocation = AppRoutes.splash}) =>
               ],
             ),
 
-            // Onglet 2 : Maternité (NOUMEDOR remplacera PlaceholderPage)
+            // Onglet 2 : Urgences (DJOBO / NOUMEDOR), bouton central
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: AppRoutes.maternity,
-                  builder: (context, state) =>
-                      const PlaceholderPage(title: 'Maternité'),
+                  path: AppRoutes.emergency,
+                  builder: (context, state) => const EmergencyModalPage(),
                 ),
               ],
             ),
 
-            // Onglet 3 : Profil (DANSOU)
+            // Onglet 3 : Maternité (NOUMEDOR), avec le calendrier vaccinal
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: AppRoutes.maternity,
+                  builder: (context, state) => const MaternityDashboardPage(),
+                  routes: [
+                    GoRoute(
+                      path: 'vaccines',
+                      builder: (context, state) => const VaccineSchedulePage(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Onglet 4 : Profil (DANSOU)
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -116,19 +130,6 @@ GoRouter createAppRouter({String initialLocation = AppRoutes.splash}) =>
               ],
             ),
           ],
-        ),
-
-        // Urgences : hors des onglets, s'ouvre par-dessus (bouton rouge).
-        // Page de DJOBO : il la complétera, la route n'aura pas à changer.
-        GoRoute(
-          path: AppRoutes.emergency,
-          builder: (context, state) => const EmergencyModalPage(),
-        ),
-
-        // Connexion / inscription (KABORE), plein écran sans barre du bas.
-        GoRoute(
-          path: AppRoutes.auth,
-          builder: (context, state) => const AuthPage(),
         ),
       ],
     );

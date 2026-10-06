@@ -6,6 +6,7 @@ import '../../../../config/routes/app_routes.dart';
 import '../../../../core/widgets/responsive_cards.dart';
 import '../../../user_profile/presentation/controllers/user_profile_controller.dart';
 import '../../domain/entities/app_user.dart';
+import '../../domain/usecases/send_password_reset.dart';
 import '../../domain/usecases/sign_in.dart';
 import '../../domain/usecases/sign_up.dart';
 import '../controllers/auth_controller.dart';
@@ -33,7 +34,11 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   void initState() {
     super.initState();
     final repository = ref.read(authRepositoryProvider);
-    _controller = AuthController(SignIn(repository), SignUp(repository));
+    _controller = AuthController(
+      SignIn(repository),
+      SignUp(repository),
+      SendPasswordReset(repository),
+    );
   }
 
   @override
@@ -45,9 +50,13 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   /// Ouvre la session, aligne le profil sur le pays du compte, puis l'accueil.
   Future<void> _onSignedIn(AppUser user) async {
     ref.read(authSessionProvider.notifier).signIn(user);
-    await ref
-        .read(userProfileControllerProvider.notifier)
-        .selectCountry(user.country);
+    // Le pays du compte devient celui du Profil (DANSOU).
+    final country = user.country;
+    if (country != null) {
+      await ref
+          .read(userProfileControllerProvider.notifier)
+          .selectCountry(country);
+    }
     if (mounted) context.go(AppRoutes.home);
   }
 

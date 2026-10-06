@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/app_user.dart';
+import '../../domain/usecases/send_password_reset.dart';
 import '../../domain/usecases/sign_in.dart';
 import '../../domain/usecases/sign_up.dart';
 
 class AuthController extends ChangeNotifier {
-  AuthController(this._signIn, this._signUp);
+  AuthController(this._signIn, this._signUp, this._sendPasswordReset);
 
   final SignIn _signIn;
   final SignUp _signUp;
+  final SendPasswordReset _sendPasswordReset;
 
   bool _busy = false;
   String? _error;
@@ -42,7 +44,15 @@ class AuthController extends ChangeNotifier {
     ),
   );
 
-  Future<AppUser?> _run(Future<AppUser> Function() action) async {
+  /// `true` si l'e-mail de réinitialisation est parti.
+  Future<bool> sendPasswordReset({required String email}) async =>
+      await _run(() async {
+        await _sendPasswordReset(email: email);
+        return true;
+      }) ??
+      false;
+
+  Future<T?> _run<T>(Future<T> Function() action) async {
     _busy = true;
     _error = null;
     notifyListeners();

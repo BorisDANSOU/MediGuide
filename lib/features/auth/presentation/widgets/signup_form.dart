@@ -58,7 +58,6 @@ class _SignupFormState extends State<SignupForm> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
     return Form(
       key: _form,
@@ -93,52 +92,33 @@ class _SignupFormState extends State<SignupForm> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Pays de résidence',
-              style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Sert à afficher les centres de santé et les numéros d’urgence de votre pays.',
-              style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 8),
-            FormField<String>(
+            const SizedBox(height: 16),
+            // Liste déroulante : les pays n'apparaissent qu'à l'ouverture.
+            DropdownButtonFormField<String>(
               initialValue: _country,
-              validator: (_) =>
-                  _country == null ? 'Choisissez votre pays.' : null,
-              builder: (state) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final loc in SupportedLocations.all)
-                        ChoiceChip(
-                          label: Text(loc.country),
-                          selected: _country == loc.country,
-                          onSelected: (_) {
-                            setState(() => _country = loc.country);
-                            state.didChange(loc.country);
-                          },
-                        ),
-                    ],
-                  ),
-                  if (state.hasError)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6, left: 12),
-                      child: Text(
-                        state.errorText!,
-                        style: text.bodySmall?.copyWith(color: scheme.error),
-                      ),
-                    ),
-                ],
+              isExpanded: true,
+              validator: (value) =>
+                  value == null ? 'Choisissez votre pays.' : null,
+              onChanged: (value) => setState(() => _country = value),
+              decoration: const InputDecoration(
+                labelText: 'Pays de résidence',
+                helperText:
+                    'Pour afficher les centres de santé et les numéros '
+                    'd’urgence de votre pays.',
+                helperMaxLines: 2,
+                prefixIcon: Icon(Icons.public),
+                border: OutlineInputBorder(),
               ),
+              items: [
+                for (final loc in SupportedLocations.all)
+                  DropdownMenuItem(
+                    value: loc.country,
+                    child: Text(loc.country),
+                  ),
+              ],
             ),
             if (_country != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Ville',

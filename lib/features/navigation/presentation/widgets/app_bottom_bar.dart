@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-/// Barre de navigation du bas : 4 onglets + un espace central
+/// Barre de navigation du bas : 5 destinations dont Urgences au centre.
 
 class AppBottomBar extends StatelessWidget {
   const AppBottomBar({
@@ -73,15 +73,15 @@ class AppBottomBar extends StatelessWidget {
               label: 'Maternité',
               icon: Icons.pregnant_woman,
               activeIcon: Icons.pregnant_woman,
-              selected: currentIndex == 2,
-              onTap: () => onTabSelected(2),
+              selected: currentIndex == 3,
+              onTap: () => onTabSelected(3),
             ),
             _NavItem(
               label: 'Profil',
               icon: Icons.person_outline,
               activeIcon: Icons.person,
-              selected: currentIndex == 3,
-              onTap: () => onTabSelected(3),
+              selected: currentIndex == 4,
+              onTap: () => onTabSelected(4),
             ),
           ],
         ),

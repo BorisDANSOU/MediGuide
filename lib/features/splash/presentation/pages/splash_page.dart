@@ -1,12 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/routes/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../providers/session_provider.dart';
+import '../../../auth/presentation/controllers/auth_providers.dart';
 
-/// Écran de démarrage de l'application, affiché pendant la vérification de la session.
+/// Écran de démarrage de l'application, affiché pendant la restauration de la session Firebase Auth.
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
@@ -15,21 +17,26 @@ class SplashPage extends ConsumerStatefulWidget {
 }
 
 class _SplashPageState extends ConsumerState<SplashPage> {
+  Timer? _navigationTimer;
+
   @override
   void initState() {
     super.initState();
-    _goNext();
+    // Durée minimale d'affichage : le Splash ne clignote pas.
+    _navigationTimer = Timer(const Duration(milliseconds: 1500), _goNext);
   }
 
-  Future<void> _goNext() async {
-    final minimumDisplay = Future<void>.delayed(
-      const Duration(milliseconds: 1500),
-    );
+  @override
+  void dispose() {
+    _navigationTimer?.cancel();
+    super.dispose();
+  }
 
-    final hasSession = await ref.read(hasActiveSessionProvider.future);
-    await minimumDisplay;
-
+  void _goNext() {
+    // L'écran a pu être fermé pendant l'attente
     if (!mounted) return;
+
+    final hasSession = ref.read(authSessionProvider) != null;
 
     context.go(hasSession ? AppRoutes.home : AppRoutes.auth);
   }
