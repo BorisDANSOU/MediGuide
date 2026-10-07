@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../domain/entities/health_center_entity.dart';
@@ -20,19 +21,59 @@ class HealthCenterMarkersLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MarkerLayer(
-      markers: [
-        for (final center in centers)
-          Marker(
-            point: LatLng(center.latitude, center.longitude),
-            width: 40,
-            height: 40,
-            child: GestureDetector(
-              onTap: () => onTap(center),
-              child: _Pin(style: HealthCenterMarkerStyle.forType(center.type)),
+    final centersByMarker = <Marker, HealthCenterEntity>{};
+    final markers = <Marker>[];
+    for (final center in centers) {
+      final marker = Marker(
+        point: LatLng(center.latitude, center.longitude),
+        width: 40,
+        height: 40,
+        child: _Pin(style: HealthCenterMarkerStyle.forType(center.type)),
+      );
+      centersByMarker[marker] = center;
+      markers.add(marker);
+    }
+
+    return MarkerClusterLayerWidget(
+      options: MarkerClusterLayerOptions(
+        markers: markers,
+        maxClusterRadius: 70,
+        disableClusteringAtZoom: 17,
+        onMarkerTap: (marker) {
+          final center = centersByMarker[marker];
+          if (center == null) {
+            throw StateError('Tapped marker is not associated with a center.');
+          }
+          onTap(center);
+        },
+        builder: (context, clusteredMarkers) => Semantics(
+          label: '${clusteredMarkers.length} centres de santé',
+          child: Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              '${clusteredMarkers.length}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }

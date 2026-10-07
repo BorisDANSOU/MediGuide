@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -6,45 +8,68 @@ import 'package:timezone/timezone.dart' as tz;
 
 typedef NotificationInitializer = Future<void> Function();
 typedef NotificationPermissionRequester = Future<bool> Function();
-typedef NotificationScheduler =
-    Future<void> Function({
-      required int id,
-      required String title,
-      required String body,
-      required DateTime scheduledDate,
-    });
+typedef ExactAlarmPermissionChecker = Future<bool> Function();
+typedef NotificationTapHandler = void Function(String payload);
+typedef NotificationLaunchPayloadReader = Future<String?> Function();
+typedef NotificationScheduler = Future<void> Function({
+  required int id,
+  required String title,
+  required String body,
+  required DateTime scheduledDate,
+});
 typedef NotificationCanceller = Future<void> Function(int id);
+typedef NotificationAllCanceller = Future<void> Function();
 
 class NotificationService {
   NotificationService._({
     NotificationInitializer? initialize,
     NotificationPermissionRequester? requestPermission,
+    ExactAlarmPermissionChecker? canScheduleExactAlarms,
+    NotificationPermissionRequester? requestExactAlarmsPermission,
+    NotificationLaunchPayloadReader? readLaunchPayload,
     NotificationScheduler? schedule,
     NotificationCanceller? cancel,
+    NotificationAllCanceller? cancelAll,
   }) : _initializeOverride = initialize,
        _requestPermissionOverride = requestPermission,
+       _canScheduleExactAlarmsOverride = canScheduleExactAlarms,
+       _requestExactAlarmsPermissionOverride = requestExactAlarmsPermission,
+       _readLaunchPayloadOverride = readLaunchPayload,
        _scheduleOverride = schedule,
-       _cancelOverride = cancel;
+       _cancelOverride = cancel,
+       _cancelAllOverride = cancelAll;
 
   static final NotificationService _instance = NotificationService._();
 
   factory NotificationService({
     NotificationInitializer? initialize,
     NotificationPermissionRequester? requestPermission,
+    ExactAlarmPermissionChecker? canScheduleExactAlarms,
+    NotificationPermissionRequester? requestExactAlarmsPermission,
+    NotificationLaunchPayloadReader? readLaunchPayload,
     NotificationScheduler? schedule,
     NotificationCanceller? cancel,
+    NotificationAllCanceller? cancelAll,
   }) {
     if (initialize == null &&
         requestPermission == null &&
+        canScheduleExactAlarms == null &&
+        requestExactAlarmsPermission == null &&
+        readLaunchPayload == null &&
         schedule == null &&
-        cancel == null) {
+        cancel == null &&
+        cancelAll == null) {
       return _instance;
     }
     return NotificationService._(
       initialize: initialize,
       requestPermission: requestPermission,
+      canScheduleExactAlarms: canScheduleExactAlarms,
+      requestExactAlarmsPermission: requestExactAlarmsPermission,
+      readLaunchPayload: readLaunchPayload,
       schedule: schedule,
       cancel: cancel,
+      cancelAll: cancelAll,
     );
   }
 
@@ -52,11 +77,44 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   final NotificationInitializer? _initializeOverride;
   final NotificationPermissionRequester? _requestPermissionOverride;
+  final ExactAlarmPermissionChecker? _canScheduleExactAlarmsOverride;
+  final NotificationPermissionRequester? _requestExactAlarmsPermissionOverride;
+  final NotificationLaunchPayloadReader? _readLaunchPayloadOverride;
   final NotificationScheduler? _scheduleOverride;
   final NotificationCanceller? _cancelOverride;
+  final NotificationAllCanceller? _cancelAllOverride;
 
   bool _isInitialized = false;
-  bool _hasNotificationPermission = false;
+  NotificationTapHandler? _notificationTapHandler;
+  String? _initialNotificationPayload;
+
+  static int notificationIdForVaccine(String vaccineId) {
+    var hash = 0x811c9dc5;
+    for (final byte in utf8.encode(vaccineId)) {
+      hash = ((hash ^ byte) * 0x01000193) & 0xffffffff;
+    }
+    final id = hash & 0x7fffffff;
+    return id == 0 ? 1 : id;
+  }
+
+  void setNotificationTapHandler(NotificationTapHandler handler) {
+    _notificationTapHandler = handler;
+  }
+
+  Future<void> handleInitialNotificationTap() async {
+    final payload = _initialNotificationPayload;
+    _initialNotificationPayload = null;
+    handleNotificationTap(payload);
+  }
+
+  void handleNotificationTap(String? payload) {
+    if (payload == null ||
+        !payload.startsWith('vaccine_reminder:') ||
+        payload.length == 'vaccine_reminder:'.length) {
+      return;
+    }
+    _notificationTapHandler?.call(payload);
+  }
 
   /// Initialise le service de notifications
   Future<void> initialize() async {
@@ -64,6 +122,7 @@ class NotificationService {
 
     if (_initializeOverride != null) {
       await _initializeOverride();
+      _initialNotificationPayload = await _readLaunchPayloadOverride?.call();
       _isInitialized = true;
       return;
     }
@@ -102,13 +161,23 @@ class NotificationService {
       settings: initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
+    if (_readLaunchPayloadOverride != null) {
+      _initialNotificationPayload = await _readLaunchPayloadOverride();
+    } else {
+      final launchDetails = await _notificationsPlugin
+          .getNotificationAppLaunchDetails();
+      if (launchDetails?.didNotificationLaunchApp ?? false) {
+        _initialNotificationPayload =
+            launchDetails?.notificationResponse?.payload;
+      }
+    }
 
     _isInitialized = true;
   }
 
   /// Planifie un rappel de vaccination
   Future<void> scheduleVaccineReminder({
-    int? notificationId,
+    required String vaccineId,
     required String title,
     required String body,
     required DateTime scheduledDate,
@@ -126,16 +195,20 @@ class NotificationService {
       await initialize();
     }
 
-    if (!_hasNotificationPermission) {
-      final granted = await (_requestPermissionOverride?.call() ??
-          _requestNotificationPermission());
-      if (!granted) {
-        throw const NotificationPermissionDeniedException();
-      }
-      _hasNotificationPermission = true;
+    final granted =
+        await (_requestPermissionOverride?.call() ??
+            _requestNotificationPermission());
+    if (!granted) {
+      throw const NotificationPermissionDeniedException();
     }
 
-    final id = notificationId ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        _canScheduleExactAlarmsOverride != null ||
+        _requestExactAlarmsPermissionOverride != null) {
+      await _ensureExactAlarmPermission();
+    }
+
+    final id = notificationIdForVaccine(vaccineId);
     final scheduleOverride = _scheduleOverride;
     if (scheduleOverride != null) {
       await scheduleOverride(
@@ -154,6 +227,34 @@ class NotificationService {
       scheduledDate: scheduledDate,
       payload: payload,
     );
+  }
+
+  Future<void> _ensureExactAlarmPermission() async {
+    final canScheduleOverride = _canScheduleExactAlarmsOverride;
+    final requestPermissionOverride = _requestExactAlarmsPermissionOverride;
+
+    Future<bool> canSchedule() async {
+      if (canScheduleOverride != null) return canScheduleOverride();
+      final androidPlugin = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      return await androidPlugin?.canScheduleExactNotifications() ?? false;
+    }
+
+    if (await canSchedule()) return;
+
+    final granted = requestPermissionOverride != null
+        ? await requestPermissionOverride()
+        : await _notificationsPlugin
+                  .resolvePlatformSpecificImplementation<
+                    AndroidFlutterLocalNotificationsPlugin
+                  >()
+                  ?.requestExactAlarmsPermission() ??
+              false;
+    if (!granted || !await canSchedule()) {
+      throw const ExactAlarmPermissionDeniedException();
+    }
   }
 
   Future<void> _scheduleWithPlugin({
@@ -208,11 +309,16 @@ class NotificationService {
   }
 
   /// Alias métier pour annuler un rappel de vaccination précis.
-  Future<void> cancelVaccineReminder({required int notificationId}) =>
-      cancelReminder(notificationId);
+  Future<void> cancelVaccineReminder({required String vaccineId}) =>
+      cancelReminder(notificationIdForVaccine(vaccineId));
 
   /// Annule tous les rappels
   Future<void> cancelAllReminders() async {
+    final cancelAllOverride = _cancelAllOverride;
+    if (cancelAllOverride != null) {
+      await cancelAllOverride();
+      return;
+    }
     await _notificationsPlugin.cancelAll();
   }
 
@@ -248,8 +354,7 @@ class NotificationService {
 
   /// Callback quand l'utilisateur tap sur une notification
   void _onNotificationTap(NotificationResponse response) {
-    print('Notification tapée: ${response.payload}');
-    // TODO: Naviguer vers la page appropriée
+    handleNotificationTap(response.payload);
   }
 
   Future<bool> _requestNotificationPermission() async {
@@ -285,5 +390,14 @@ class NotificationPermissionDeniedException implements Exception {
   const NotificationPermissionDeniedException();
 
   @override
-  String toString() => 'La permission d’afficher des notifications est refusée.';
+  String toString() =>
+      'La permission d’afficher des notifications est refusée.';
+}
+
+class ExactAlarmPermissionDeniedException implements Exception {
+  const ExactAlarmPermissionDeniedException();
+
+  @override
+  String toString() =>
+      'L’accès aux alarmes exactes est nécessaire pour programmer ce rappel.';
 }

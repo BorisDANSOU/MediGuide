@@ -18,4 +18,11 @@ class UserRepoImpl implements UserRepository {
   Future<void> saveProfile(UserProfileEntity profile) {
     return _localDataSource.writeProfile(profile);
   }
+
+  @override
+  Future<UserProfileEntity> initializeProfileIfAbsent(
+    UserProfileEntity profile,
+  ) {
+    return _localDataSource.writeProfileIfAbsent(profile);
+  }
 }

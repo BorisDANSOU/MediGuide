@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/vaccine_reminder_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/vaccine_entity.dart';
 import '../../domain/repositories/maternity_repository.dart';
@@ -12,9 +14,16 @@ import '../widgets/maternity_dashboard_widgets.dart';
 import '../widgets/vaccine_card.dart';
 
 class VaccineSchedulePage extends StatefulWidget {
-  const VaccineSchedulePage({super.key, this.repository});
+  const VaccineSchedulePage({
+    super.key,
+    this.repository,
+    this.reminderPreferences,
+    this.notificationService,
+  });
 
   final MaternityRepository? repository;
+  final VaccineReminderPreferences? reminderPreferences;
+  final NotificationService? notificationService;
 
   @override
   State<VaccineSchedulePage> createState() => _VaccineSchedulePageState();
@@ -33,7 +42,11 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
     _isGuest = _activeUid == null;
     final repository = widget.repository ??
         MaternityRepositoryFactory.maternity(uid: _activeUid);
-    _provider = MaternityProvider(repository)..loadSchedules();
+    _provider = MaternityProvider(
+      repository,
+      notificationService: widget.notificationService,
+      reminderPreferences: widget.reminderPreferences,
+    )..loadSchedules();
     if (widget.repository == null) {
       _authSubscription = MaternityRepositoryFactory.authChanges?.listen(
         _onAuthChanged,
@@ -172,8 +185,12 @@ class _VaccineSchedulePageState extends State<VaccineSchedulePage> {
                         ),
                       ),
                     );
+                  } else if (context.mounted &&
+                      _provider.errorMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(_provider.errorMessage!)),
+                    );
                   }
-
                 }
               },
               icon: const Icon(Icons.calendar_today),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +17,9 @@ Future<void> main() async {
 
   // Initialiser le service de notifications
   final notificationService = NotificationService();
+  notificationService.setNotificationTapHandler((_) {
+    navigateToVaccineSchedule(appRouter);
+  });
   await notificationService.initialize();
 
   // Connexion à Firebase
@@ -35,6 +40,9 @@ Future<void> main() async {
       child: const MediGuideApp(),
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(notificationService.handleInitialNotificationTap());
+  });
 }
 
 class MediGuideApp extends StatelessWidget {
