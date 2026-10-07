@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/auth_page.dart';
@@ -10,6 +11,7 @@ import '../../features/health_centers/presentation/pages/search_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/maternity/presentation/pages/maternity_dashboard_page.dart';
 import '../../features/maternity/presentation/pages/vaccine_schedule_page.dart';
+import '../../features/user_profile/presentation/controllers/vaccine_reminder_settings_controller.dart';
 import '../../features/navigation/presentation/pages/main_shell_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/user_profile/presentation/pages/profile_page.dart';
@@ -32,6 +34,10 @@ class AppRoutes {
 
   static String searchWith([CenterFilter filter = CenterFilter.all]) =>
       '$search?filter=${filter.name}';
+}
+
+void navigateToVaccineSchedule(GoRouter router) {
+  router.go(AppRoutes.vaccines);
 }
 
 /// Construit un routeur indépendant, notamment pour les tests.
@@ -109,7 +115,16 @@ GoRouter createAppRouter({String initialLocation = AppRoutes.splash}) =>
                   routes: [
                     GoRoute(
                       path: 'vaccines',
-                      builder: (context, state) => const VaccineSchedulePage(),
+                          builder: (context, state) => Consumer(
+                            builder: (context, ref, _) => VaccineSchedulePage(
+                              reminderPreferences: ref.read(
+                                vaccineReminderPreferencesProvider,
+                              ),
+                              notificationService: ref.read(
+                                notificationServiceProvider,
+                              ),
+                            ),
+                          ),
                     ),
                   ],
                 ),

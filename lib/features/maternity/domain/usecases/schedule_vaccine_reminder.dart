@@ -7,12 +7,14 @@ class ScheduleVaccineReminder {
 
   /// Planifie un rappel de vaccination
   Future<void> call({
+    required String vaccineId,
     required String title,
     required String body,
     required DateTime scheduledDate,
     String? payload,
   }) {
     return notificationService.scheduleVaccineReminder(
+      vaccineId: vaccineId,
       title: title,
       body: body,
       scheduledDate: scheduledDate,
@@ -21,8 +23,8 @@ class ScheduleVaccineReminder {
   }
 
   /// Annule un rappel de vaccination
-  Future<void> cancel(int id) {
-    return notificationService.cancelReminder(id);
+  Future<void> cancel(String vaccineId) {
+    return notificationService.cancelVaccineReminder(vaccineId: vaccineId);
   }
 
   /// Annule tous les rappels

@@ -1,8 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mediguid/core/services/notification_service.dart';
+import 'package:mediguid/core/services/vaccine_reminder_preferences.dart';
+import 'package:mediguid/features/maternity/domain/usecases/schedule_vaccine_reminder.dart';
 import 'package:mediguid/features/maternity/domain/entities/cpn_entity.dart';
 import 'package:mediguid/features/maternity/domain/entities/vaccine_entity.dart';
 import 'package:mediguid/features/maternity/domain/repositories/maternity_repository.dart';
 import 'package:mediguid/features/maternity/presentation/controllers/maternity_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test('loads CPN and vaccine schedules from the repository', () async {
@@ -92,6 +96,74 @@ void main() {
     },
   );
 
+  test('saves a date at 09:00 without scheduling when reminders are disabled',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      VaccineReminderPreferences.enabledKey: false,
+    });
+    final preferences = VaccineReminderPreferences(
+      await SharedPreferences.getInstance(),
+    );
+    var scheduleCalled = false;
+    final service = NotificationService(
+      initialize: () async {},
+      requestPermission: () async => true,
+      canScheduleExactAlarms: () async => true,
+      schedule:
+          ({
+            required id,
+            required title,
+            required body,
+            required scheduledDate,
+          }) async {
+            scheduleCalled = true;
+          },
+    );
+    final repository = _FakeMaternityRepository();
+    final provider = MaternityProvider(
+      repository,
+      scheduleReminder: ScheduleVaccineReminder(service),
+      reminderPreferences: preferences,
+    );
+    final selectedDate = DateTime.now().add(const Duration(days: 2));
+
+    expect(
+      await provider.scheduleVaccineReminder(
+        vaccineId: 'bcg',
+        vaccineName: 'BCG',
+        scheduledDate: selectedDate,
+      ),
+      isFalse,
+    );
+
+    final savedDate = repository.savedReminders.single;
+    expect(savedDate.hour, 9);
+    expect(savedDate.minute, 0);
+    expect(scheduleCalled, isFalse);
+    expect(provider.errorMessage, contains('notifications sont désactivées'));
+    provider.dispose();
+  });
+
+  test('rejects a reminder date whose 09:00 time has passed', () async {
+    final repository = _FakeMaternityRepository();
+    final provider = MaternityProvider(repository);
+    final today = DateTime.now();
+
+    if (today.hour >= 9) {
+      expect(
+        await provider.scheduleVaccineReminder(
+          vaccineId: 'bcg',
+          vaccineName: 'BCG',
+          scheduledDate: today,
+        ),
+        isFalse,
+      );
+      expect(repository.savedReminders, isEmpty);
+      expect(provider.errorMessage, contains('09 h 00'));
+    }
+    provider.dispose();
+  });
+
   test('clears previous account schedules when repository changes', () async {
     final first = _FakeMaternityRepository(
       vaccines: const [
@@ -136,6 +208,7 @@ class _FakeMaternityRepository implements MaternityRepository {
   final Object? error;
   final Object? writeError;
   final writes = <String>[];
+  final savedReminders = <DateTime>[];
 
   @override
   Future<List<VaccineEntity>> getVaccinationSchedule() async {
@@ -168,5 +241,6 @@ class _FakeMaternityRepository implements MaternityRepository {
   ) async {
     if (writeError != null) throw writeError!;
     writes.add('reminder:$vaccineId:$reminderAt');
+    if (reminderAt != null) savedReminders.add(reminderAt);
   }
 }

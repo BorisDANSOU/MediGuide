@@ -33,15 +33,14 @@ void main() {
     expect(find.text('E-mail ou mot de passe incorrect.'), findsOneWidget);
   });
 
-  testWidgets('Connexion : le pays du compte devient celui du profil', (
+  testWidgets('Connexion : conserve la zone locale déjà choisie', (
     tester,
   ) async {
-    // Profil enregistré sur un autre pays : la connexion doit le corriger.
     await pumpApp(
       tester,
       location: AppRoutes.auth,
-      country: 'Togo',
-      city: 'Lomé',
+      country: "Côte d'Ivoire",
+      city: 'Abidjan',
     );
     await _fillLogin(
       tester,
@@ -51,9 +50,31 @@ void main() {
     await _tap(tester, 'Se connecter');
 
     expect(find.text('Bonjour, Awa 👋'), findsOneWidget);
-    expect(find.text('Ouagadougou, Burkina Faso'), findsOneWidget);
+    await _tap(tester, 'Profil');
+    expect(find.textContaining("Abidjan, Côte d'Ivoire"), findsWidgets);
     expect(find.text('Se connecter'), findsNothing);
   });
+
+  testWidgets(
+    'Connexion : initialise la zone depuis le compte si aucune zone locale',
+    (tester) async {
+      await pumpApp(
+        tester,
+        location: AppRoutes.auth,
+        saveInitialProfile: false,
+      );
+      await _fillLogin(
+        tester,
+        FakeAuthRepository.knownEmail,
+        FakeAuthRepository.knownPassword,
+      );
+      await _tap(tester, 'Se connecter');
+
+      expect(find.text('Bonjour, Awa 👋'), findsOneWidget);
+      await _tap(tester, 'Profil');
+      expect(find.textContaining('Ouagadougou, Burkina Faso'), findsWidgets);
+    },
+  );
 
   testWidgets('Mot de passe oublié : envoie le lien à l’e-mail saisi', (
     tester,
@@ -62,10 +83,7 @@ void main() {
     await pumpApp(tester, location: AppRoutes.auth, auth: auth);
 
     await _tap(tester, 'Mot de passe oublié ?');
-    expect(
-      find.textContaining('Saisissez d’abord votre e-mail'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Saisissez d’abord votre e-mail'), findsWidgets);
     expect(auth.resetEmails, isEmpty);
 
     await tester.enterText(find.byType(TextFormField).at(0), 'awa@exemple.bf');
@@ -77,7 +95,7 @@ void main() {
   testWidgets('Inscription : pays choisi dans la liste déroulante', (
     tester,
   ) async {
-    await pumpApp(tester, location: AppRoutes.auth);
+    await pumpApp(tester, location: AppRoutes.auth, saveInitialProfile: false);
     await _tap(tester, 'Créer un compte');
 
     // Les pays ne sont pas affichés tant que la liste n'est pas ouverte.
@@ -110,7 +128,8 @@ void main() {
     await _tap(tester, 'Créer mon compte');
 
     expect(find.text('Bonjour, Koffi 👋'), findsOneWidget);
-    expect(find.text("Abidjan, Côte d'Ivoire"), findsOneWidget);
+    await _tap(tester, 'Profil');
+    expect(find.textContaining("Abidjan, Côte d'Ivoire"), findsWidgets);
   });
 
   testWidgets('Inscription : pays obligatoire', (tester) async {

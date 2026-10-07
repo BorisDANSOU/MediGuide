@@ -47,15 +47,14 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     super.dispose();
   }
 
-  /// Ouvre la session, aligne le profil sur le pays du compte, puis l'accueil.
+  /// Ouvre la session, initialise la zone locale si nécessaire, puis l'accueil.
   Future<void> _onSignedIn(AppUser user) async {
     ref.read(authSessionProvider.notifier).signIn(user);
-    // Le pays du compte devient celui du Profil (DANSOU).
     final country = user.country;
     if (country != null) {
       await ref
           .read(userProfileControllerProvider.notifier)
-          .selectCountry(country);
+          .initializeLocationIfAbsent(country);
     }
     if (mounted) context.go(AppRoutes.home);
   }

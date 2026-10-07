@@ -6,4 +6,9 @@ abstract class UserRepository {
 
   /// Enregistre le profil
   Future<void> saveProfile(UserProfileEntity profile);
+
+  /// Initialise le profil avec [profile] uniquement s'il n'existe pas encore.
+  Future<UserProfileEntity> initializeProfileIfAbsent(
+    UserProfileEntity profile,
+  );
 }

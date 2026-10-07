@@ -12,7 +12,7 @@ import '../../../user_profile/presentation/controllers/user_profile_controller.d
 import '../../domain/entities/health_center_entity.dart';
 import '../../domain/failures/health_center_access_failure.dart';
 import '../controllers/health_centers_providers.dart';
-import '../widgets/health_center_marker_style.dart';
+import '../widgets/health_center_summary_sheet.dart';
 import '../widgets/health_center_markers_layer.dart';
 import '../widgets/map_legend.dart';
 
@@ -75,56 +75,7 @@ class _MapPageState extends ConsumerState<MapPage> {
 
   /// Fiche rapide d'un centre, ouverte quand on touche son marqueur
   void _showCenterSheet(HealthCenterEntity center) {
-    final style = HealthCenterMarkerStyle.forType(center.type);
-
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(style.icon, color: style.color),
-                  const SizedBox(width: 8),
-                  Text(
-                    style.label,
-                    style: TextStyle(
-                      color: style.color,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                center.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text('${center.city ?? ''}, ${center.country ?? ''}'),
-              // Téléphone affiché seulement s'il existe
-              if (center.phone != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.phone, size: 16),
-                    const SizedBox(width: 6),
-                    Text(center.phone!),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
+    HealthCenterSummarySheet.show(context, center);
   }
 
   @override
