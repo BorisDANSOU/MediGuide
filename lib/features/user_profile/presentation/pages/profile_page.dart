@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../config/routes/app_routes.dart';
+import '../../../auth/presentation/controllers/auth_providers.dart';
 import '../controllers/user_profile_controller.dart';
 import '../widgets/country_picker_sheet.dart';
 import '../widgets/profile_header_card.dart';
 
-/// Écran Profil
+/// Écran Profil : zone active, changement de pays et déconnexion.
+/// ConsumerWidget : un widget qui peut observer des providers Riverpod.
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
@@ -39,17 +43,13 @@ class ProfilePage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            // Déconnexion : à brancher quand l'authentification existera
+            // Déconnexion réelle : Firebase Auth (via le provider de KABORE)
             OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Déconnexion disponible après l’intégration '
-                      'de l’authentification.',
-                    ),
-                  ),
-                );
+              onPressed: () async {
+                // signOut() déconnecte Firebase et remet la session à null
+                await ref.read(authSessionProvider.notifier).signOut();
+                // Après un await, l'écran a pu être fermé : on vérifie
+                if (context.mounted) context.go(AppRoutes.auth);
               },
               icon: const Icon(Icons.logout),
               label: const Text('Déconnexion'),
