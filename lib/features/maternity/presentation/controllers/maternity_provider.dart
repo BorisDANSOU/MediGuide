@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/vaccine_reminder_preferences.dart';
 import '../../domain/entities/cpn_entity.dart';
 import '../../domain/entities/vaccine_entity.dart';
 import '../../domain/repositories/maternity_repository.dart';
@@ -10,12 +11,17 @@ class MaternityProvider extends ChangeNotifier {
   MaternityProvider(
     this.repository, {
     ScheduleVaccineReminder? scheduleReminder,
-  }) : _scheduleReminder = scheduleReminder ?? ScheduleVaccineReminder(
-          NotificationService(),
-        );
+    NotificationService? notificationService,
+    this.reminderPreferences,
+  }) : _scheduleReminder =
+           scheduleReminder ??
+           ScheduleVaccineReminder(
+             notificationService ?? NotificationService(),
+           );
 
   MaternityRepository repository;
   final ScheduleVaccineReminder _scheduleReminder;
+  final VaccineReminderPreferences? reminderPreferences;
 
   List<VaccineEntity> _vaccines = const [];
   List<CpnEntity> _cpnSchedules = const [];
@@ -126,8 +132,21 @@ class MaternityProvider extends ChangeNotifier {
     required String vaccineName,
     required DateTime scheduledDate,
   }) async {
+    final reminderAt = DateTime(
+      scheduledDate.year,
+      scheduledDate.month,
+      scheduledDate.day,
+      9,
+    );
+    if (!reminderAt.isAfter(DateTime.now())) {
+      _errorMessage =
+          'Choisissez une date dont le rappel à 09 h 00 n’est pas déjà passé.';
+      notifyListeners();
+      return false;
+    }
+
     try {
-      await repository.setVaccineReminder(vaccineId, scheduledDate);
+      await repository.setVaccineReminder(vaccineId, reminderAt);
       _vaccines = [
         for (final vaccine in _vaccines)
           if (vaccine.id == vaccineId)
@@ -137,7 +156,7 @@ class MaternityProvider extends ChangeNotifier {
               recommendedMonth: vaccine.recommendedMonth,
               status: vaccine.status,
               description: vaccine.description,
-              reminderAt: scheduledDate,
+              reminderAt: reminderAt,
             )
           else
             vaccine,
@@ -148,20 +167,41 @@ class MaternityProvider extends ChangeNotifier {
       return false;
     }
 
+    if (reminderPreferences?.isEnabled == false) {
+      _errorMessage =
+          'La date est enregistrée, mais les notifications sont désactivées '
+          'dans votre profil.';
+      notifyListeners();
+      return false;
+    }
+
     try {
       await _scheduleReminder(
+        vaccineId: vaccineId,
         title: 'Rappel de vaccination',
-        body: 'Vaccin $vaccineName prévu pour le ${_formatDate(scheduledDate)}',
-        scheduledDate: scheduledDate,
-        payload: vaccineName,
+        body: 'Vaccin $vaccineName prévu le ${_formatDate(reminderAt)}',
+        scheduledDate: reminderAt,
+        payload: 'vaccine_reminder:$vaccineId',
       );
       _errorMessage = null;
       notifyListeners();
       return true;
+    } on NotificationPermissionDeniedException {
+      _errorMessage =
+          'La date est enregistrée, mais la permission de notifications '
+          'est refusée sur cet appareil.';
+      notifyListeners();
+      return false;
+    } on ExactAlarmPermissionDeniedException {
+      _errorMessage =
+          'La date est enregistrée, mais l’accès aux alarmes exactes est '
+          'refusé dans les paramètres Android.';
+      notifyListeners();
+      return false;
     } catch (_) {
       _errorMessage =
-          'La date est synchronisée, mais la notification locale n’a pas '
-          'pu être programmée sur cet appareil.';
+          'La date est enregistrée, mais la notification locale '
+          'n’a pas pu être programmée sur cet appareil.';
       notifyListeners();
       return false;
     }

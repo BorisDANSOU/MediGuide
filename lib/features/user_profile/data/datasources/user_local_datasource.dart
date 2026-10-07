@@ -28,4 +28,16 @@ class UserLocalDataSource {
     await _prefs.setString(_countryKey, profile.country);
     await _prefs.setString(_cityKey, profile.city);
   }
+
+  /// Enregistre [profile] seulement si l'utilisateur n'a pas encore choisi
+  /// une zone de recherche sur cet appareil.
+  Future<UserProfileEntity> writeProfileIfAbsent(
+    UserProfileEntity profile,
+  ) async {
+    final savedProfile = readProfile();
+    if (savedProfile != null) return savedProfile;
+
+    await writeProfile(profile);
+    return profile;
+  }
 }

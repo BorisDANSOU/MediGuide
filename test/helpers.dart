@@ -5,12 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mediguid/config/routes/app_routes.dart';
 import 'package:mediguid/core/theme/app_theme.dart';
+import 'package:mediguid/core/services/notification_service.dart';
 import 'package:mediguid/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mediguid/features/auth/presentation/controllers/auth_providers.dart';
 import 'package:mediguid/features/health_centers/data/repositories/demo_health_center_repository.dart';
 import 'package:mediguid/features/health_centers/domain/repositories/health_center_repository.dart';
 import 'package:mediguid/features/health_centers/presentation/controllers/health_centers_providers.dart';
 import 'package:mediguid/features/user_profile/presentation/controllers/user_profile_controller.dart';
+import 'package:mediguid/features/user_profile/presentation/controllers/vaccine_reminder_settings_controller.dart';
+import 'package:mediguid/features/maternity/domain/repositories/maternity_repository.dart';
 
 import 'fakes/fake_auth_repository.dart';
 
@@ -37,12 +40,17 @@ Future<void> pumpApp(
   required String location,
   String country = 'Burkina Faso',
   String city = 'Ouagadougou',
+  bool saveInitialProfile = true,
   AuthRepository? auth,
   HealthCenterRepository? healthCenters,
+  NotificationService? notificationService,
+  MaternityRepositoryCreator? maternityRepositoryCreator,
 }) async {
   SharedPreferences.setMockInitialValues({
-    'profile_country': country,
-    'profile_city': city,
+    if (saveInitialProfile) ...{
+      'profile_country': country,
+      'profile_city': city,
+    },
   });
   final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
@@ -53,6 +61,12 @@ Future<void> pumpApp(
         healthCenterRepositoryProvider.overrideWithValue(
           healthCenters ?? const DemoHealthCenterRepository(),
         ),
+        if (notificationService != null)
+          notificationServiceProvider.overrideWithValue(notificationService),
+        if (maternityRepositoryCreator != null)
+          maternityRepositoryCreatorProvider.overrideWithValue(
+            maternityRepositoryCreator,
+          ),
       ],
       child: MaterialApp.router(
         theme: AppTheme.light,
