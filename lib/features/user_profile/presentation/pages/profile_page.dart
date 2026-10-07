@@ -13,7 +13,8 @@ import '../controllers/user_profile_controller.dart';
 import '../widgets/country_picker_sheet.dart';
 import '../widgets/profile_header_card.dart';
 
-/// Écran Profil
+/// Écran Profil : zone active, changement de pays et déconnexion.
+/// ConsumerWidget : un widget qui peut observer des providers Riverpod.
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
@@ -89,17 +90,10 @@ class ProfilePage extends ConsumerWidget {
                           ),
                           if (settings.errorMessage != null)
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                0,
-                                16,
-                                12,
-                              ),
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                               child: Text(
                                 settings.errorMessage!,
-                                key: const ValueKey(
-                                  'vaccine-reminders-error',
-                                ),
+                                key: const ValueKey('vaccine-reminders-error'),
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.error,
                                 ),
