@@ -4,7 +4,10 @@ import '../../domain/entities/emergency_pharmacy_entity.dart';
 import '../../domain/entities/user_location_entity.dart';
 
 /// Source de données locale statique pour la Côte d'Ivoire / Abidjan.
-/// TODO: fetch_from_firestore [IMPORTANT]
+/// TODO (IMPORTANT): Remplacer cette source locale par une source Firestore partagée (EmergencyFirestoreDataSource).
+///   - Lire collections partagées: 'emergency_numbers', 'emergency_hospitals', 'emergency_pharmacies'
+///   - Fournir une implémentation qui respecte la mise en cache et le fallback offline
+///   Voir: lib/features/emergency/data/datasources/ (à créer)
 class EmergencyLocalDataSource {
   const EmergencyLocalDataSource();
 

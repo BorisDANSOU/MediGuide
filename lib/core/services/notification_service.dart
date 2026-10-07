@@ -248,7 +248,7 @@ class NotificationService {
 
   /// Callback quand l'utilisateur tap sur une notification
   void _onNotificationTap(NotificationResponse response) {
-    print('Notification tapée: ${response.payload}');
+    debugPrint('Notification tapée: ${response.payload}');
     // TODO: Naviguer vers la page appropriée
   }
 
